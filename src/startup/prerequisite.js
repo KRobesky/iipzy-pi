@@ -32,7 +32,7 @@ async function prerequisite(http, configFile) {
   publicIPAddress = await getPublicIp(http);
   log("prerequisite: publicIPAddress = " + publicIPAddress, "preq", "info");
 
-  serialNumber = await getSerialNumber();
+  serialNumber = "123456789012345"; //?? await getSerialNumber();
   log("prerequisite: serialNumber = " + serialNumber, "preq", "info");
 
   clientToken = configFile.get("clientToken");
