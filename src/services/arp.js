@@ -23,24 +23,38 @@ var spawn = require('child_process').spawn;
  * 
  */
 
+var arp = null;
+
 const { log } = require("iipzy-shared/src/utils/logFile");
 
+var os_id = '';
+
 module.exports.getMAC = function(ipaddress, cb) {
-	if(process.platform.indexOf('linux') == 0) {
-		exports.readMACLinux(ipaddress, cb);
+	if(os_id === '') {
+		const { stdout, stderr } = await spawnAsync(
+			"os-id"
+		  );
+		if (stderr)
+			log("(Error) os-id: stderr = " + stderr, "nlst", "error");
+		else
+			os_id = stdout;
+		log("prerequisite: od-id = " + os_id, "nlst", "info");
+		if(os_id !== 'openwrt' ) {
+			arp = require("node-arp");
+		}
 	}
-	else if (process.platform.indexOf('win') == 0) {
-		exports.readMACWindows(ipaddress, cb);
+	if(os_id === 'openwrt' ) {
+		exports.readMACOpenWrt(ipaddress, cb);
 	}
-	else if (process.platform.indexOf('darwin') == 0) {
-		exports.readMACMac(ipaddress, cb);
+	else 
+		arp.getMAC(ipaddress, cb)
 	}
 };
 
 /**
  * read from arp -n IPADDRESS
  */
-module.exports.readMACLinux = function(ipaddress, cb) {
+module.exports.readMACOpenWrt = function(ipaddress, cb) {
 	
 	// ping the ip address to encourage the kernel to populate the arp tables
 	var ping = spawn("ping", [ "-c", "1", ipaddress ]);
@@ -65,7 +79,7 @@ module.exports.readMACLinux = function(ipaddress, cb) {
 				return;
 			}
 			
-			//log("...readMACLinux: ip = " + ipaddress + ", buffer = " + buffer, "nlst", "info");
+			//log("...readMACOpenWrt: ip = " + ipaddress + ", buffer = " + buffer, "nlst", "info");
 			//Parse this format
 			//Lookup succeeded : Address                  HWtype  HWaddress           Flags Mask            Iface
 			//					IPADDRESS	              ether   MACADDRESS   C                     IFACE
@@ -74,112 +88,18 @@ module.exports.readMACLinux = function(ipaddress, cb) {
 			//??var table = buffer.split('\n');
 			//??if (table.length >= 2) {
 			var parts = buffer.split('\t').filter(String);
-				//log("...readMACLinux: ip = " + ipaddress + ", part[0] = " + parts[0], "nlst", "info");
-				//log("...readMACLinux: ip = " + ipaddress + ", part[1] = " + parts[1], "nlst", "info");
-				//log("...readMACLinux: ip = " + ipaddress + ", part[2] = " + parts[2], "nlst", "info");
-				//log("...readMACLinux: ip = " + ipaddress + ", part[3] = " + parts[3], "nlst", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[0] = " + parts[0], "nlst", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[1] = " + parts[1], "nlst", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[2] = " + parts[2], "nlst", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[3] = " + parts[3], "nlst", "info");
 
 			cb(false, parts[1]);
 
 			//}
 			//cb(true, "Could not find ip in arp table: " + ipaddress);
 		});
-	});	
-	
+	});		
 };
 
-/**
- * read from arp -a IPADDRESS
- */
-module.exports.readMACWindows = function(ipaddress, cb) {
-	
-	// ping the ip address to encourage the kernel to populate the arp tables
-	var ping = spawn("ping", ["-n", "1", ipaddress ]);
-	
-	ping.on('close', function (code) {
-		// not bothered if ping did not work
-		
-		var arp = spawn("arp", ["-a", ipaddress] );
-		var buffer = '';
-		var errstream = '';
-		var lineIndex;
-		
-		arp.stdout.on('data', function (data) {
-			buffer += data;
-		});
-		arp.stderr.on('data', function (data) {
-			errstream += data;
-		});
-		
-		arp.on('close', function (code) {
-			if (code !== 0) {
-				console.log("Error running arp " + code + " " + errstream);
-				cb(true, code);
-				return;
-			}
-			
-			var table = buffer.split('\r\n');
-			for (lineIndex = 3; lineIndex < table.length; lineIndex++) {
-				//parse this format
-				//[blankline]
-				//Interface: 192.º68.1.54
-				//  Internet Address      Physical Address     Type
-				//  192.168.1.1           50-67-f0-8c-7a-3f    dynamic
-				
-				var parts = table[lineIndex].split(' ').filter(String);
-				if (parts[0] === ipaddress) {
-					var mac = parts[1].replace(/-/g, ':');
-					cb(false, mac);
-					return;
-				}
-			}
-			cb(true, "Count not find ip in arp table: " + ipaddress); 
-		});
-	});	
-	
-};
-/**
- * read from arp -n IPADDRESS
- */
-module.exports.readMACMac = function(ipaddress, cb) {
-	
-	// ping the ip address to encourage the kernel to populate the arp tables
-	var ping = spawn("ping", ["-c", "1", ipaddress ]);
-	
-	ping.on('close', function (code) {
-		// not bothered if ping did not work
-		
-		var arp = spawn("arp-scan", ["-x", ipaddress] );
-		var buffer = '';
-		var errstream = '';
-		arp.stdout.on('data', function (data) {
-			buffer += data;
-		});
-		arp.stderr.on('data', function (data) {
-			errstream += data;
-		});
-		
-		arp.on('close', function (code) {
-			// On lookup failed OSX returns code 1
-			// but errstream will be empty
-			if (code !== 0 && errstream !== '') {
-				console.log("Error running arp " + code + " " + errstream);
-				cb(true, code);
-				return;
-			}
-			 
-			//parse this format
-			//Lookup succeeded : HOST (IPADDRESS) at MACADDRESS on IFACE ifscope [ethernet]
-			//Lookup failed : HOST (IPADDRESS) -- no entry
-			var parts = buffer.split(' ').filter(String);
-			if (parts[3] !== 'no') {
-				var mac = parts[3].replace(/^0:/g, '00:').replace(/:0:/g, ':00:').replace(/:0$/g, ':00').replace(/:([^:]{1}):/g, ':0$1:');
-				cb(false, mac);
-				return;
-			}
-				
-			cb(true, "Count not find ip in arp table: " + ipaddress);
-		});
-	});	
-	
-};
+
+
