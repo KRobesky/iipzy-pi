@@ -180,12 +180,12 @@ async function main() {
   scheduler.init(context);
   remoteJobManager.init(context);
 
-  //??networkMonitor = new NetworkMonitor(context);
-  //??// start in 10 seconds
-  //??setTimeout(async () => {
-  //??  await networkMonitor.start("eth0", "udp port 53");
-  //??  //networkMonitor.start("eth0", "");
-  //??}, 10 * 1000);
+  networkMonitor = new NetworkMonitor(context);
+  // start in 10 seconds
+  setTimeout(async () => {
+    await networkMonitor.start("eth0", "udp port 53");
+    //networkMonitor.start("eth0", "");
+  }, 10 * 1000);
 
   //??wifiService = new WifiService(context);
 

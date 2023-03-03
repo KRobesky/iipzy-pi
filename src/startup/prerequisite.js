@@ -1,8 +1,9 @@
-const { getSerialNumber } = require("raspi-serial-number");
+//??const { getSerialNumber } = require("raspi-serial-number");
 
 const Defs = require("iipzy-shared/src/defs");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const { sleep } = require("iipzy-shared/src/utils/utils");
+const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 
 const { getGatewayIp, getPrivateIp, getPublicIp } = require("../utils/networkInfo");
 
@@ -32,7 +33,13 @@ async function prerequisite(http, configFile) {
   publicIPAddress = await getPublicIp(http);
   log("prerequisite: publicIPAddress = " + publicIPAddress, "preq", "info");
 
-  serialNumber = "123456789012345"; //?? await getSerialNumber();
+  const { stdout, stderr } = await spawnAsync(
+    "serial-number"
+  );
+  if (stderr)
+      log("(Error) serial-number: stderr = " + stderr, "auth", "error");
+  else
+    serialNumber = stdout;
   log("prerequisite: serialNumber = " + serialNumber, "preq", "info");
 
   clientToken = configFile.get("clientToken");

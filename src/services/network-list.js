@@ -14,10 +14,12 @@
 
 var async = require("async");
 var ping = require("ping");
-var arp = require("node-arp");
+//var arp = require("node-arp");
 var dns = require("dns");
 var request = require("request");
 var ip = require("ip");
+
+var arp = require("./arp");
 
 const { log } = require("iipzy-shared/src/utils/logFile");
 
