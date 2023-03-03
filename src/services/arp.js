@@ -1,5 +1,5 @@
 var util = require('util');
-var spawn = require('child_process').spawn;
+const { spawn } = require("child_process");
 
 /**
  * Read the MAC address from the ARP table.
@@ -25,20 +25,15 @@ var spawn = require('child_process').spawn;
 
 var arp = null;
 
+const { get_os_id } = require("iipzy-shared/src/utils/globals");
 const { log } = require("iipzy-shared/src/utils/logFile");
+
 
 var os_id = '';
 
 module.exports.getMAC = function(ipaddress, cb) {
 	if(os_id === '') {
-		const { stdout, stderr } = await spawnAsync(
-			"os-id"
-		  );
-		if (stderr)
-			log("(Error) os-id: stderr = " + stderr, "nlst", "error");
-		else
-			os_id = stdout;
-		log("prerequisite: od-id = " + os_id, "nlst", "info");
+		os_id = get_os_id();
 		if(os_id !== 'openwrt' ) {
 			arp = require("node-arp");
 		}
@@ -46,8 +41,8 @@ module.exports.getMAC = function(ipaddress, cb) {
 	if(os_id === 'openwrt' ) {
 		exports.readMACOpenWrt(ipaddress, cb);
 	}
-	else 
-		arp.getMAC(ipaddress, cb)
+	else {
+		arp.getMAC(ipaddress, cb);
 	}
 };
 
@@ -79,7 +74,7 @@ module.exports.readMACOpenWrt = function(ipaddress, cb) {
 				return;
 			}
 			
-			//log("...readMACOpenWrt: ip = " + ipaddress + ", buffer = " + buffer, "nlst", "info");
+			//log("...readMACOpenWrt: ip = " + ipaddress + ", buffer = " + buffer, "arp ", "info");
 			//Parse this format
 			//Lookup succeeded : Address                  HWtype  HWaddress           Flags Mask            Iface
 			//					IPADDRESS	              ether   MACADDRESS   C                     IFACE
@@ -88,10 +83,10 @@ module.exports.readMACOpenWrt = function(ipaddress, cb) {
 			//??var table = buffer.split('\n');
 			//??if (table.length >= 2) {
 			var parts = buffer.split('\t').filter(String);
-				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[0] = " + parts[0], "nlst", "info");
-				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[1] = " + parts[1], "nlst", "info");
-				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[2] = " + parts[2], "nlst", "info");
-				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[3] = " + parts[3], "nlst", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[0] = " + parts[0], "arp ", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[1] = " + parts[1], "arp ", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[2] = " + parts[2], "arp ", "info");
+				//log("...readMACOpenWrt: ip = " + ipaddress + ", part[3] = " + parts[3], "arp ", "info");
 
 			cb(false, parts[1]);
 

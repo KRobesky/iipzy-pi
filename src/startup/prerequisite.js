@@ -1,6 +1,7 @@
 //??const { getSerialNumber } = require("raspi-serial-number");
 
 const Defs = require("iipzy-shared/src/defs");
+const { set_os_id } = require("iipzy-shared/src/utils/globals");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
@@ -33,14 +34,23 @@ async function prerequisite(http, configFile) {
   publicIPAddress = await getPublicIp(http);
   log("prerequisite: publicIPAddress = " + publicIPAddress, "preq", "info");
 
-  const { stdout, stderr } = await spawnAsync(
-    "serial-number"
-  );
+  const { stdout, stderr } = await spawnAsync("serial-number", []);
   if (stderr)
-      log("(Error) serial-number: stderr = " + stderr, "auth", "error");
+      log("(Error) serial-number: stderr = " + stderr, "preq", "error");
   else
     serialNumber = stdout;
   log("prerequisite: serialNumber = " + serialNumber, "preq", "info");
+
+  {
+    const { stdout, stderr } = await spawnAsync("os-id", []);
+    if (stderr)
+        log("(Error) os-id: stderr = " + stderr, "preq", "error");
+    else
+    {
+      log("prerequisite: os_id = " + stdout, "preq", "info");
+      set_os_id(stdout);
+    }
+  }
 
   clientToken = configFile.get("clientToken");
   log("prerequisite: clientToken = " + clientToken, "preq", "info");
