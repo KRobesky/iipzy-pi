@@ -286,9 +286,9 @@ class NetworkMonitor {
 
     await this.networkScan.scan();
 
-    this.watchDns();
+    //--this.watchDns();
 
-    this.watchDhcp();
+    //--this.watchDhcp();
   }
 
   watchDns() {
