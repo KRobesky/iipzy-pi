@@ -284,6 +284,12 @@ class NetworkMonitor {
   async start(device, filter) {
     log("NetworkMonitor.start: device = " + device + ", filter = " + filter, "nmon", "info");
 
+    await spawnAsync("sudo", [
+      "ifconfig", 
+      "eth1", 
+      "promisc"]
+    );
+
     await this.networkScan.scan();
 
     this.watchDns();
