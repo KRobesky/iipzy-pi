@@ -286,30 +286,29 @@ class NetworkMonitor {
 
     await this.networkScan.scan();
 
-    //--this.watchDns();
+    this.watchDns();
 
-    //--this.watchDhcp();
+    this.watchDhcp();
   }
 
   watchDns() {
-    //??TODO string to array.
+    log("NetworkScan.watchDns", "nmon");
     this.execDns = spawn("sudo", [
       "tcpdump",
       "udp",
       "port",
       "53",
       "-i",
-      "eth0",
+      "eth1",
       "-n",
       "-l",
+      "-v",
       "--immediate-mode"
     ]);
-    //this.execDns = spawn("tcpdump", ["eth0 udp port 53"]);
 
     this.execDns.stdout.on("data", data => {
       const str = data.toString().replace(/\r?\n|\r/g, " ");
-      //str = str = str.replace(/\r?\n|\r/g, "");
-      //log("stdout: " + str, "nmon", "info");
+      log("watchDns.stdout: " + str, "nmon", "info");
       //log("-----", "nmon", "info");
       //log(str, "nmon", "info");
       this.decodeDNSPacket(str);
@@ -320,11 +319,11 @@ class NetworkMonitor {
 
     this.execDns.stderr.on("data", data => {
       const str = data.toString();
-      log("stderr: " + str, "nmon", "info");
+      log("watchDns.stderr: " + str, "nmon", "info");
     });
 
     this.execDns.on("exit", code => {
-      log(`tcpdump exited with code ${code}`, "nmon", "info");
+      log(`watchDns tcpdump exited with code ${code}`, "nmon", "info");
       this.execDns = null;
     });
   }
@@ -335,16 +334,23 @@ class NetworkMonitor {
   }
 
   watchDhcp() {
-    log("NetworkScan.watchDhcp", "dhcp");
-
-    this.execDhcp = spawn("sudo", ["tcpdump", "udp", "port", "67", "-v"]);
-    //this.execDhcp = spawn("tcpdump", ["eth0 udp port 53"]);
+    log("NetworkScan.watchDhcp", "nmon");
+    this.execDhcp = spawn("sudo", [
+      "tcpdump", 
+      "udp", 
+      "port", 
+      "67", 
+      "-i",
+      "eth1",
+      "-v",
+      "--immediate-mode"
+    ]);
 
     this.execDhcp.stdout.on("data", data => {
       //const str = data.toString().replace(/\r?\n|\r/g, " ");
       const str = data.toString();
       //str = str = str.replace(/\r?\n|\r/g, "");
-      log("stdout: " + str, "dhcp", "verbose");
+      log("watchDhcp.stdout: " + str, "nmon", "verbose");
       //log("-----", "dhcp");
       //log(str, "dhcp");
       //this.decodeDNSPacket(str);
@@ -355,11 +361,11 @@ class NetworkMonitor {
 
     this.execDhcp.stderr.on("data", data => {
       const str = data.toString();
-      log("stderr: " + str, "dhcp", "info");
+      log("watchDhcp.stderr: " + str, "nmon", "info");
     });
 
     this.execDhcp.on("exit", code => {
-      log(`tcpdump exited with code ${code}`, "dhcp", "info");
+      log(`watchDhcp tcpdump exited with code ${code}`, "nmon", "info");
       this.execDhcp = null;
     });
   }
