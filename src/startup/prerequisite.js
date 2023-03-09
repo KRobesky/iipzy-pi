@@ -7,6 +7,7 @@ const { sleep } = require("iipzy-shared/src/utils/utils");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 
 const { getGatewayIp, getPrivateIp, getPublicIp } = require("../utils/networkInfo");
+const { changeTimezoneIfNecessary } = require("../utils/timezone");
 
 // see if device has changed ip addresses.
 async function prerequisite(http, configFile) {
@@ -69,6 +70,14 @@ async function prerequisite(http, configFile) {
       await configFile.set("clientName", null);
       // set publicIPAddress
       await configFile.set("publicIPAddress", publicIPAddress);
+      // check timezone.
+      if (await changeTimezoneIfNecessary(configFile)) {
+        // restart.
+        log("timezone change. Restarting in 5 seconds", "preq", "info");
+        setTimeout(() => {
+          process.exit(99);
+        }, 5 * 1000);
+      }
     }
   }
 
