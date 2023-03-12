@@ -4,43 +4,35 @@ const publicIp = require("public-ip");
 
 const { log } = require("iipzy-shared/src/utils/logFile");
 const http = require("iipzy-shared/src/services/httpService");
+const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 
 const userDataPath = process.platform === "win32" ? "c:/temp/" : "/etc/iipzy";
 
-function getMachineTimezoneString() {
-  const result = exec("timedatectl", {});
-  const str = result.toString("utf8");
-  const tzLabel = "Time zone: ";
-  const n = str.indexOf(tzLabel);
-  if (n != -1) {
-    const l = n + tzLabel.length;
-    const r = str.indexOf(" (", l);
-    const timezoneString = str.substring(l, r);
-    log(
-      "getMachineTimezoneString: timezoneString = '" + timezoneString + "'",
-      "util"
-    );
-    return timezoneString;
+async function getMachineTimezoneCode() {
+  const { stdout, stderr } = await spawnAsync("get-timezone-code", []);
+  log("getMachineTimezoneCode: " + stdout, "tz", "info");
+  if (stderr) {
+    log("(Error) getMachineTimezoneCode: " + stderr, "tz", "error");
+    return null;
   }
-  return null;
+  return stdout;
 }
 
-async function getIPAddressTimezoneString() {
+async function getIPAddressTimezoneInfo() {
   // timezone.
-  let timezone = null;
+  let timezoneInfo = null;
 
-  const results = await http.get("/client/timezoneid");
+  const results = await http.get("/client/timezoneInfo");
 
   const { data } = results;
-  if (data && data.timezoneId) {
-    log(
-      "getIPAddressTimezoneString: timezoneString = '" + data.timezoneId + "'",
-      "util"
-    );
-    timezone = data.timezoneId;
-  }
+  log(
+    "getIPAddressTimezoneInfo: data = " + JSON.stringify(data),
+    "tz"
+  );
+  if (data) 
+    timezoneInfo = data;
 
-  return timezone;
+  return timezoneInfo;
 }
 
 async function changeTimezoneIfNecessary(configFile) {
@@ -55,33 +47,31 @@ async function changeTimezoneIfNecessary(configFile) {
     "tz",
     "info"
   );
+ 
+  const machineTimezoneCode = await getMachineTimezoneCode();
+  log("changeTimezoneIfNecessary: machineTimezoneCode = " + machineTimezoneCode, "tz", "info");
 
-  if (!publicIPAddressConfig || publicIPAddressConfig !== publicIPAddress) {
-    const machineTimezoneString = getMachineTimezoneString();
-    if (!machineTimezoneString) return false;
-    const ipAddressTimezoneString = await getIPAddressTimezoneString();
-    if (!ipAddressTimezoneString) return false;
-    if (machineTimezoneString !== ipAddressTimezoneString) {
-      // change machine timezone.
-      const result = exec(
-        "sudo timedatectl set-timezone " + ipAddressTimezoneString,
-        {}
-      );
-      const str = result.toString("utf8");
-      log("...datetimectl result = " + str);
-      // NB: verify change.
-      if (ipAddressTimezoneString === getMachineTimezoneString()) {
-        log(
-          "changeTimezoneIfNecessary: new timezoneString = " +
-            ipAddressTimezoneString,
-          "tz",
-          "info"
-        );
-        await configFile.set("publicIPAddress", publicIPAddress);
-        return true;
-      }
+  if (!machineTimezoneCode) return false;
+  const ipAddressTimezoneInfo = await getIPAddressTimezoneInfo();
+  log("changeTimezoneIfNecessary: ipAddressTimezoneCode = " + ipAddressTimezoneInfo.timezoneCode, "tz", "info");
+  if (!ipAddressTimezoneInfo) return false;
+  if (machineTimezoneCode !== ipAddressTimezoneInfo.timezoneCode) {
+    // change machine timezone.
+    log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + ipAddressTimezoneInfo.timezoneCode, "tz", "info");
+    const { stdout, stderr } = await spawnAsync("set-timezone", [ipAddressTimezoneInfo.timezoneCode, ipAddressTimezoneInfo.timezoneName]);
+    if (stderr) {
+      log("(Error) changeTimezoneIfNecessary.set-timezone: " + stderr, "tz", "error");
+      return false;
+    }
+    return stdout;
+    // NB: verify change.
+    if (ipAddressTimezoneInfo.timezoneCode === getMachineTimezoneCode()) {
+      log("changeTimezoneIfNecessary: new TimezoneCode = " + ipAddressTimezoneInfo.timezoneCode, "tz", "info");
+      await configFile.set("publicIPAddress", publicIPAddress);
+      return true;
     }
   }
+
 
   return false;
 }

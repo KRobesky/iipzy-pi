@@ -68,17 +68,17 @@ async function prerequisite(http, configFile) {
       await configFile.set("userName", null);
       await configFile.set("password", null);
       await configFile.set("clientName", null);
-      //--// set publicIPAddress
+      // set publicIPAddress
       await configFile.set("publicIPAddress", publicIPAddress);
-      //--// check timezone. sets configFile "publicIPAddress"
-      //--if (await changeTimezoneIfNecessary(configFile)) {
-      //--  // restart.
-      //--  log("timezone change. Restarting in 5 seconds", "preq", "info");
-      //--  setTimeout(() => {
-      //--    process.exit(99);
-      //--  }, 5 * 1000);
-      //--}
     }
+  }
+
+  if (await changeTimezoneIfNecessary(configFile)) {
+    // restart.
+    log("timezone change. Restarting in 5 seconds", "preq", "info");
+    setTimeout(() => {
+      process.exit(99);
+    }, 5 * 1000);
   }
 
   const ret = { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber };
