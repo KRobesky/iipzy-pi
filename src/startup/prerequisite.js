@@ -77,7 +77,7 @@ async function prerequisite(http, configFile) {
     // restart.
     log("timezone change. Restarting in 5 seconds", "preq", "info");
     setTimeout(() => {
-      process.exit(99);
+      const { stdout, stderr } = await spawnAsync("sudo", ["reboot"]);
     }, 5 * 1000);
   }
 
