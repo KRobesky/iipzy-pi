@@ -76,7 +76,7 @@ async function prerequisite(http, configFile) {
   if (await changeTimezoneIfNecessary(configFile)) {
     // restart.
     log("timezone change. Rebooting in 5 seconds", "preq", "info");
-    const { stdout, stderr } = await spawnAsync("sudo", ["reboot", "-r", "+5"]);
+    const { stdout, stderr } = await spawnAsync("sudo", ["reboot", "-d", "5"]);
   }
 
   const ret = { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber };

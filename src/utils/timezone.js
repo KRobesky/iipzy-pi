@@ -53,7 +53,7 @@ async function changeTimezoneIfNecessary(configFile) {
   if (!machineTimezoneCode) return false;
 
   const ipAddressTimezoneInfo = await getIPAddressTimezoneInfo();
-  log("changeTimezoneIfNecessary: ipAddressTimezoneCode = " + ipAddressTimezoneInfo.timezoneCode, "tz", "info");
+  log("changeTimezoneIfNecessary: ipAddressTimezoneId = " + ipAddressTimezoneInfo.timezoneId, "tz", "info");
   if (!ipAddressTimezoneInfo) return false;
   let timezoneCode = 'UTC';
   const { stdout, stderr } = await spawnAsync("get-timezone-rule", [ipAddressTimezoneInfo.timezoneId]);
@@ -62,7 +62,7 @@ async function changeTimezoneIfNecessary(configFile) {
     return false;
   }
   timezoneCode = stdout;
-  
+
   if (machineTimezoneCode !== timezoneCode) {
     // change machine timezone.
     log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + timezoneCode, "tz", "info");
@@ -72,8 +72,8 @@ async function changeTimezoneIfNecessary(configFile) {
       return false;
     }
     // NB: verify change.
-    if (timezoneCode === getMachineTimezoneCode()) {
-      log("changeTimezoneIfNecessary: new TimezoneCode = " + ipAddressTimezoneInfo.timezoneCode, "tz", "info");
+    if (timezoneCode === await getMachineTimezoneCode()) {
+      log("changeTimezoneIfNecessary: verified TimezoneCode = " + timezoneCode, "tz", "info");
       await configFile.set("publicIPAddress", publicIPAddress);
       return true;
     }
