@@ -66,6 +66,8 @@ async function changeTimezoneIfNecessary(configFile) {
   if (machineTimezoneCode !== timezoneCode) {
     // change machine timezone.
     log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + timezoneCode, "tz", "info");
+    await configFile.set("timezoneGmtOffset", ipAddress.timezoneInfo.timezoneGmtOffset);
+    /*
     const { stdout, stderr } = await spawnAsync("set-timezone", [timezoneCode, ipAddressTimezoneInfo.timezoneId]);
     if (stderr) {
       log("(Error) changeTimezoneIfNecessary.set-timezone: " + stderr, "tz", "error");
@@ -74,9 +76,10 @@ async function changeTimezoneIfNecessary(configFile) {
     // NB: verify change.
     if (timezoneCode === await getMachineTimezoneCode()) {
       log("changeTimezoneIfNecessary: verified TimezoneCode = " + timezoneCode, "tz", "info");
-      await configFile.set("publicIPAddress", publicIPAddress);
+      //await configFile.set("publicIPAddress", publicIPAddress);
       return true;
     }
+    */
   }
 
 

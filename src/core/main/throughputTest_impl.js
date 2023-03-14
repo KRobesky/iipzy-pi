@@ -552,6 +552,11 @@ async function iperf3DoneFuncUploadThroughput(code, avgThoughputMBits) {
     stopWatchdogTimer();
     ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState }));
     timeOfTest = new Date().toString();
+    log(
+      "iperf3DoneFuncDetermineIploadThroughput: timeOfTest = " + timeOfTest,
+      "tput",
+      "info"
+    );
     ipcSendIfEnabled(Defs.ipcTimeOfTest, timeOfTest);
     // write to rrdb.
     const { numEntries, id } = await roundRobinDB.write(
