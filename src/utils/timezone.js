@@ -5,6 +5,7 @@ const publicIp = require("public-ip");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const http = require("iipzy-shared/src/services/httpService");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
+const { set_timezoneOffsetMinutes } = require("iipzy-shared/src/utils/time");
 
 const userDataPath = process.platform === "win32" ? "c:/temp/" : "/etc/iipzy";
 
@@ -66,7 +67,8 @@ async function changeTimezoneIfNecessary(configFile) {
   if (machineTimezoneCode !== timezoneCode) {
     // change machine timezone.
     log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + timezoneCode, "tz", "info");
-    await configFile.set("timezoneGmtOffset", ipAddress.timezoneInfo.timezoneGmtOffset);
+    await configFile.set("timezoneGmtOffset", ipAddressTimezoneInfo.timezoneGmtOffset);
+    set_timezoneOffsetMinutes(ipAddressTimezoneInfo.timezoneGmtOffset);
     /*
     const { stdout, stderr } = await spawnAsync("set-timezone", [timezoneCode, ipAddressTimezoneInfo.timezoneId]);
     if (stderr) {
