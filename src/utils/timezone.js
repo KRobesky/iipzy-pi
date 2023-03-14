@@ -69,6 +69,7 @@ async function changeTimezoneIfNecessary(configFile) {
     log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + timezoneCode, "tz", "info");
     await configFile.set("timezoneGmtOffset", ipAddressTimezoneInfo.timezoneGmtOffset);
     set_timezoneOffsetMinutes(ipAddressTimezoneInfo.timezoneGmtOffset);
+    return true;
     /*
     const { stdout, stderr } = await spawnAsync("set-timezone", [timezoneCode, ipAddressTimezoneInfo.timezoneId]);
     if (stderr) {
