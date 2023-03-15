@@ -73,6 +73,8 @@ async function prerequisite(http, configFile) {
     }
   }
 
+  await changeTimezoneIfNecessary(configFile);
+  /*
   if (await changeTimezoneIfNecessary(configFile)) {
     // restart.
     log("timezone change. Restarting in 5 seconds", "preq", "info");
@@ -81,6 +83,7 @@ async function prerequisite(http, configFile) {
     }, 5 * 1000);
     await sleep(6 * 1000)
   }
+  */
 
   const ret = { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber };
 

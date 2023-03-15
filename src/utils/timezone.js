@@ -9,6 +9,7 @@ const { set_timezoneOffsetMinutes } = require("iipzy-shared/src/utils/time");
 
 const userDataPath = process.platform === "win32" ? "c:/temp/" : "/etc/iipzy";
 
+/*
 async function getMachineTimezoneCode() {
   const { stdout, stderr } = await spawnAsync("get-timezone-code", []);
   log("getMachineTimezoneCode: " + stdout, "tz", "info");
@@ -18,23 +19,23 @@ async function getMachineTimezoneCode() {
   }
   return stdout;
 }
+*/
 
 async function getIPAddressTimezoneInfo() {
   // timezone.
   let timezoneInfo = null;
-
   const results = await http.get("/client/timezoneInfo");
-
   const { data } = results;
   log(
-    "getIPAddressTimezoneInfo: data = " + JSON.stringify(data),
+    "getIPAddressTimezoneInfo: data = " + JSON.stringify(data, null, 2),
     "tz"
   );
-  if (data) 
+  if (data.timezoneGmtOffset)
     timezoneInfo = data;
 
   return timezoneInfo;
 }
+
 
 async function changeTimezoneIfNecessary(configFile) {
   // check timezone.
@@ -49,13 +50,15 @@ async function changeTimezoneIfNecessary(configFile) {
     "info"
   );
  
+  /*
   const machineTimezoneCode = await getMachineTimezoneCode();
   log("changeTimezoneIfNecessary: machineTimezoneCode = " + machineTimezoneCode, "tz", "info");
   if (!machineTimezoneCode) return false;
+  */
 
   const ipAddressTimezoneInfo = await getIPAddressTimezoneInfo();
-  log("changeTimezoneIfNecessary: ipAddressTimezoneId = " + ipAddressTimezoneInfo.timezoneId, "tz", "info");
   if (!ipAddressTimezoneInfo) return false;
+  /*
   let timezoneCode = 'UTC';
   const { stdout, stderr } = await spawnAsync("get-timezone-rule", [ipAddressTimezoneInfo.timezoneId]);
   if (stderr) {
@@ -63,13 +66,16 @@ async function changeTimezoneIfNecessary(configFile) {
     return false;
   }
   timezoneCode = stdout;
+  */
 
-  if (machineTimezoneCode !== timezoneCode) {
+  // NB: We only care about timezone offset.
+  set_timezoneOffsetMinutes(ipAddressTimezoneInfo.timezoneGmtOffset);
+  let curTimezoneGmtOffset = await configFile.get("timezoneGmtOffset");
+  if (curTimezoneGmtOffset !== ipAddressTimezoneInfo.timezoneGmtOffset) {
     // change machine timezone.
-    log("changeTimezoneIfNecessary: change TimezoneCode, old = " + machineTimezoneCode + ", new = " + timezoneCode, "tz", "info");
+    log("changeTimezoneIfNecessary: change timezoneGmtOffset, old = " + curTimezoneGmtOffset + ", new = " + ipAddressTimezoneInfo.timezoneGmtOffset, "tz", "info");
     await configFile.set("timezoneGmtOffset", ipAddressTimezoneInfo.timezoneGmtOffset);
-    set_timezoneOffsetMinutes(ipAddressTimezoneInfo.timezoneGmtOffset);
-    return true;
+     return true;
     /*
     const { stdout, stderr } = await spawnAsync("set-timezone", [timezoneCode, ipAddressTimezoneInfo.timezoneId]);
     if (stderr) {
