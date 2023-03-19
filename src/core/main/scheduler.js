@@ -10,7 +10,7 @@ function scheduleDailyWork() {
   const rule = new schedule.RecurrenceRule();
   rule.dayOfWeek = [new schedule.Range(0, 6)];
   rule.hour = local_hour_to_gmt_hour(1);
-  //log("scheduleDailyWork: hour = " + rule.hour, "schd", "info");
+  log("scheduleDailyWork: gmt hour = " + rule.hour, "schd", "info");
   //rule.hour = [16, 17];
   rule.minute = 12;
   //rule.minute = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
