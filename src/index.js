@@ -24,7 +24,7 @@ const heartbeat = require("./core/main/heartbeat");
 const pingPlot = require("./core/main/pingPlot");
 
 //** testing */
-const NetRate = require("./core/main/netrate");
+//??const NetRate = require("./core/main/netrate");
 
 const scheduler = require("./core/main/scheduler");
 const throughputTest = require("./core/main/throughputTest");
@@ -200,9 +200,11 @@ async function main() {
 
   //??wifiService = new WifiService(context);
 
+  /*
   log("main: creating netrate", "main", "info");
   const netrate = new NetRate("netrate", netRateDataFunc, netRateDoneFunc, 0, 5);
   netrate.run();
+  */
 
   log("__dirname: " + __dirname, "main", "info");
   const port = 8002;

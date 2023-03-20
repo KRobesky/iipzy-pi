@@ -5,7 +5,7 @@ const { log } = require("iipzy-shared/src/utils/logFile");
 class NetRate {
   constructor(title, dataFunc, doneFunc, maxSamples, intervalSeconds) {
     log(
-      "netrate.constructor: title = " +
+      "NetRate.constructor: title = " +
       title +
       ", has dataFunc = " +
       (dataFunc != null) +
@@ -53,7 +53,7 @@ class NetRate {
   }
 
 
- getRxTxData() {
+  getRxTxData() {
     log("NetRate.getRxTxRate", "rate", "info");
 
     if (this.cancelled) return;
