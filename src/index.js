@@ -135,6 +135,14 @@ async function main() {
     }
   }
 
+  function netRateDataFunc(jsonString) {
+    log("netRateDataFunc: date = " + jsonString, "main", "info");
+  }
+  
+  function netRateDoneFunc(j) {
+    log("netRateDoneFunc", "main", "info");
+  }
+
   // dump device table
   ipcRecv.registerReceiver(Defs.ipcDumpSentinelDeviceTable, (event, data) => {
     log("dump device table", "main", "info");
@@ -193,7 +201,7 @@ async function main() {
   //??wifiService = new WifiService(context);
 
   log("main: creating netrate", "main", "info");
-  const netrate = new NetRate("netrate", null, null, 0, 5);
+  const netrate = new NetRate("netrate", netRateDataFunc, netRateDoneFunc, 0, 5);
   netrate.run();
 
   log("__dirname: " + __dirname, "main", "info");
