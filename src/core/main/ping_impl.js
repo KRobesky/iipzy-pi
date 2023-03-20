@@ -76,7 +76,7 @@ class Ping {
               this.cur_ping_sample.dropped = true;
             }
           }
-          log("ping.sendPingSample: cur_netrate_value = " + JSON.stringify(this.cur_netrate_value));
+          //log("ping.sendPingSample: cur_netrate_value = " + JSON.stringify(this.cur_netrate_value));
           /*
           rx_rate_mbits : parseInt(0),
           rx_new_errors : parseInt(0),
@@ -89,8 +89,9 @@ class Ping {
           let consolidatedSample = this.cur_ping_sample;
           consolidatedSample.rx_rate_mbits = this.cur_netrate_value.rx_rate_mbits;
           consolidatedSample.tx_rate_mbits = this.cur_netrate_value.tx_rate_mbits;
-          log("ping.sendPingSample: consolidatedSample" + JSON.stringify(consolidatedSample), "ping", "error");
-          this.dataFunc(JSON.stringify(this.cur_ping_sample));
+          //log("ping.sendPingSample: consolidatedSample" + JSON.stringify(consolidatedSample), "ping", "error");
+          //this.dataFunc(JSON.stringify(this.cur_ping_sample));
+          this.dataFunc(JSON.stringify(consolidatedSample));
         } catch (ex) {
           log("(Exception) ping.sendPingSample: " + ex, "ping", "error");
         }
