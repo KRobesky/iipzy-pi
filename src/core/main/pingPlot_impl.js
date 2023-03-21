@@ -19,7 +19,7 @@ let userDataPath = null;
 let sendAlert = null;
 let ping = null;
 let roundRobinDB = null;
-const rrdbDataSize = 80;
+const rrdbDataSize = 120;
 
 let pingTarget = Defs.pingTarget;
 
