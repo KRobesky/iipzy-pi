@@ -242,7 +242,7 @@ class Ping {
       log(`Ping exited with code ${code}`, "ping", "info");
 
       this.stopSendPingSample();
-      this.stopSendSendNetRateSample();
+      this.stopSendNetRateSample();
 
       if (code !== 0 && this.durationSeconds === 0 && !this.cancelled) {
         // restart.
