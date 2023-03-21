@@ -19,7 +19,7 @@ let userDataPath = null;
 let sendAlert = null;
 let ping = null;
 let roundRobinDB = null;
-const rrdbDataSize = 120;
+const rrdbDataSize = 140;
 
 let pingTarget = Defs.pingTarget;
 
@@ -121,6 +121,12 @@ async function init(context) {
   roundRobinDB = new RoundRobinDB(_userDataPath, "pingPlot", rrdbDataSize, createNumEntries);
 
   const pingPlotZip = path.resolve(__dirname, "../../../extraResources/pingPlot.rrdb.gz");
+
+  /*
+  // for generating empty db.
+  await roundRobinDB.init(null);
+  return;
+  */
 
   const { entryIndex, linkId, maxEntries, numEntries } = await roundRobinDB.init(pingPlotZip);
   dbMaxEntries = maxEntries;
