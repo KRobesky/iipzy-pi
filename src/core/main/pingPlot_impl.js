@@ -149,7 +149,7 @@ async function init(context) {
   const pingTarget_ = configFile.get("pingTarget");
   if (pingTarget_) pingTarget = pingTarget_;
 
-  ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5);
+  ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true);
   ping.run();
 
   setInterval(async () => {
@@ -384,7 +384,7 @@ async function checkPingTarget() {
     await configFile.set("pingTarget", pingTarget);
     if (ping) {
       ping.cancel();
-      ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5);
+      ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true);
       ping.run();
     }
   }

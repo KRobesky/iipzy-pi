@@ -330,7 +330,8 @@ async function determineNominalLatency() {
     pingDataFuncDetermineNominalLatency,
     pingDoneFuncDetermineNominalLatency,
     pingTarget,
-    nominalLatencyTestDurationSeconds
+    nominalLatencyTestDurationSeconds,
+    false
   );
   ping.run();
 }
@@ -473,7 +474,8 @@ async function determineDownloadThroughput() {
     pingDataFuncDownloadThroughput,
     pingDoneFuncDownloadThroughput,
     pingTarget,
-    downloadThroughputTestDurationSeconds
+    downloadThroughputTestDurationSeconds,
+    false
   );
   ping.run();
 
@@ -646,7 +648,8 @@ async function determineUploadThroughput() {
     pingDataFuncUploadThroughput,
     pingDoneFuncUploadThroughput,
     pingTarget,
-    uploadThroughputTestDurationSeconds
+    uploadThroughputTestDurationSeconds,
+    false
   );
   ping.run();
 

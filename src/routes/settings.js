@@ -20,7 +20,7 @@ const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 const heartbeat = require("../core/main/heartbeat");
 const Ping = require("../core/main/ping");
 
-const WifiService = require("../services/wifiService");
+//--const WifiService = require("../services/wifiService");
 
 const { sendLogFiles } = require("../utils/sendLogFiles");
 
@@ -32,10 +32,10 @@ const {
   validateThroughputTestRrdb
 } = require("../core/main/throughputTest");
 
-const wifiService = new WifiService();
+//--const wifiService = new WifiService();
 
 // for simulateDroppedPackets
-const ping = new Ping("settings: simulate dropped packets", null, "", 0, 0);
+const ping = new Ping("settings: simulate dropped packets", null, "", 0, 0, false);
 
 router.use(
   fileUpload()
@@ -260,8 +260,8 @@ router.get("/", async (req, res) => {
     simulateOffLine: heartbeat.getSimulateOffline(),
     speedTestDataRestore: await filePresence_helper("throughput.rrdb"),
     wifiJoin: "",
-    wifiNetworks: await wifiService.getWifiNetworks(),
-    wifiStatus: await wifiService.getWifiStatus()
+    wifiNetworks: null, //--await wifiService.getWifiNetworks(),
+    wifiStatus: false //--await wifiService.getWifiStatus()
   };
   res.send({ settings });
 });
@@ -328,7 +328,7 @@ router.post("/", async (req, res) => {
     }
 
     if (settings.hasOwnProperty("wifiJoin")) {
-      data = await wifiService.joinWifiNetwork(settings.wifiJoin);
+      //--data = await wifiService.joinWifiNetwork(settings.wifiJoin);
     }
   } catch (ex) {
     log("(Exception) POST settings: ex = " + ex, "sets", "error");

@@ -5,7 +5,7 @@ const { log } = require("iipzy-shared/src/utils/logFile");
 let doSimulateDroppedPackets = false;
 
 class Ping {
-  constructor(title, dataFunc, doneFunc, target, durationSeconds, intervalSeconds) {
+  constructor(title, dataFunc, doneFunc, target, durationSeconds, intervalSeconds, wantNetRate) {
     log(
       "ping.constructor: title = " +
         title +
@@ -18,18 +18,21 @@ class Ping {
       "ping",
       "info"
     );
+    this.title = title;
     this.dataFunc = dataFunc;
     this.doneFunc = doneFunc;
     this.target = target;
-    this.title = title;
     this.durationSeconds = durationSeconds ? durationSeconds : 0;
     this.intervalSeconds = intervalSeconds ? intervalSeconds : 1;
-    this.exec = null;
+    this.wantNetRate = wantNetRate;
+    
     this.cancelled = false;
+
+    // ping
+    this.exec = null;
     this.totalSamples = 0;
     this.totalTimeMillis = 0;
     this.totalDroppedPackets = 0;
-
     this.ping_interval = null;
     this.timeout = null;
     this.inSendPingSample = false;
@@ -78,20 +81,24 @@ class Ping {
           }
           //log("ping.sendPingSample: cur_netrate_value = " + JSON.stringify(this.cur_netrate_value));
           /*
-          rx_rate_mbits : parseInt(0),
+          rx_rate_bits : parseInt(0),
           rx_new_errors : parseInt(0),
           rx_new_dropped : parseInt(0),
-          tx_rate_mbits : parseInt(0),
+          tx_rate_bits : parseInt(0),
           tx_new_errors : parseInt(0),
           tx_new_dropped : parseInt(0)
           */
-          // consolidate ping and netrate
-          let consolidatedSample = this.cur_ping_sample;
-          consolidatedSample.rx_rate_mbits = this.cur_netrate_value.rx_rate_mbits;
-          consolidatedSample.tx_rate_mbits = this.cur_netrate_value.tx_rate_mbits;
-          //log("ping.sendPingSample: consolidatedSample" + JSON.stringify(consolidatedSample), "ping", "error");
-          //this.dataFunc(JSON.stringify(this.cur_ping_sample));
-          this.dataFunc(JSON.stringify(consolidatedSample));
+          if (this.wantNetRate) {
+            // consolidate ping and netrate
+            let consolidatedSample = this.cur_ping_sample;        
+            consolidatedSample.rx_rate_bits = this.cur_netrate_value.rx_rate_bits;
+            consolidatedSample.tx_rate_bits = this.cur_netrate_value.tx_rate_bits;
+            //log("ping.sendPingSample: consolidatedSample" + JSON.stringify(consolidatedSample), "ping", "error");
+            this.dataFunc(JSON.stringify(consolidatedSample));
+          } else {
+            //log("ping.sendPingSample: consolidatedSample" + JSON.stringify(consolidatedSample), "ping", "error");
+            this.dataFunc(JSON.stringify(this.cur_ping_sample));
+          }
         } catch (ex) {
           log("(Exception) ping.sendPingSample: " + ex, "ping", "error");
         }
@@ -283,10 +290,12 @@ class Ping {
   }
   
   startSendNetRateSample() {
-    this.getRxTxData();
-    this.netrate_interval = setInterval(() => {
-      this.getRxTxData(); 
-    }, this.intervalSeconds * 1000);  
+    if (this.wantNetRate) {
+      this.getRxTxData();
+      this.netrate_interval = setInterval(() => {
+        this.getRxTxData(); 
+      }, this.intervalSeconds * 1000);  
+    }
   }
 
   stopSendNetRateSample() {
@@ -345,10 +354,10 @@ class Ping {
       
         let ret = {
           sample_time : new_sample.sample_time,
-          rx_rate_mbits : parseInt(0),
+          rx_rate_bits : parseInt(0),
           rx_new_errors : parseInt(0),
           rx_new_dropped : parseInt(0),
-          tx_rate_mbits : parseInt(0),
+          tx_rate_bits : parseInt(0),
           tx_new_errors : parseInt(0),
           tx_new_dropped : parseInt(0)
         }
@@ -356,7 +365,7 @@ class Ping {
         // receive (down)
 
         if (this.cur_netrate_sample.rx_bytes != 0 && new_sample.rx_bytes > this.cur_netrate_sample.rx_bytes) {
-          ret.rx_rate_mbits = Math.round(((new_sample.rx_bytes - this.cur_netrate_sample.rx_bytes) * 8) / ((new_sample.sample_time - this.cur_netrate_sample.sample_time) / 1000));
+          ret.rx_rate_bits = Math.round(((new_sample.rx_bytes - this.cur_netrate_sample.rx_bytes) * 8) / ((new_sample.sample_time - this.cur_netrate_sample.sample_time) / 1000));
         }
 
         if (new_sample.rx_errors > this.cur_netrate_sample.rx_errors) {
@@ -370,7 +379,7 @@ class Ping {
         // transmit (up)
          
         if (this.cur_netrate_sample.tx_bytes != 0 && new_sample.tx_bytes > this.cur_netrate_sample.tx_bytes) {
-          ret.tx_rate_mbits = Math.round(((new_sample.tx_bytes - this.cur_netrate_sample.tx_bytes) * 8) / ((new_sample.sample_time - this.cur_netrate_sample.sample_time) / 1000));
+          ret.tx_rate_bits = Math.round(((new_sample.tx_bytes - this.cur_netrate_sample.tx_bytes) * 8) / ((new_sample.sample_time - this.cur_netrate_sample.sample_time) / 1000));
         }
       
         if (new_sample.tx_errors > this.cur_netrate_sample.tx_errors) {
