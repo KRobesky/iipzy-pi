@@ -595,7 +595,7 @@ async function filter(jo, numSamples) {
         const { id, linkId, data } = ja[i];
         //if (i === center) log("-----center = " + JSON.stringify(ja[i]));
         // NB: handle empty rows.
-        const { timeMillis, dropped, timeStamp } = data.timeMillis !== undefined ? data : dataPrev;
+        const { timeMillis, dropped, timeStamp, rx_rate_bits, tx_rate_bits } = data.timeMillis !== undefined ? data : dataPrev;
         if (data.timeMillis !== undefined) {
           //log("---filter---saving prev");
           dataPrev = data;
@@ -623,7 +623,9 @@ async function filter(jo, numSamples) {
             data: {
               timeMillis: timeMillisAvg,
               dropped: sampleDropped,
-              timeStamp: sampleTimeStamp
+              timeStamp: sampleTimeStamp,
+              rx_rate_bits: rx_rate_bits,
+              tx_rate_bits: tx_rate_bits,
             }
           };
           jaRet.push(row);
