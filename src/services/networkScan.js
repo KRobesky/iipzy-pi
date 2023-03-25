@@ -13,7 +13,6 @@ const {
   fileReadAsync,
   fileWriteAsync
 } = require("iipzy-shared/src/utils/fileIO");
-const { now_local } = require("iipzy-shared/src/utils/time");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 
 const { bonjourServiceNameToProtocolInfo } = require("./bonjourServiceInfo");
@@ -891,7 +890,7 @@ class NetworkScan {
         device.pingSucceeded = code === 0;
         if (device.pingSucceeded) {
           device.alive = true;
-          device.latestGoodPing = now_local();
+          device.latestGoodPing = new Date();
         }
 
         if (prevPingSucceeded !== device.pingSucceeded) {
@@ -988,7 +987,7 @@ class NetworkScan {
       device.pingSucceeded = code === 0;
       if (device.pingSucceeded) {
         device.alive = true;
-        device.latestGoodPing = now_local();
+        device.latestGoodPing = new Date();
       }
 
       log(
@@ -1043,7 +1042,7 @@ class NetworkScan {
     const prevPingSucceeded = device.pingSucceeded;
     if (onLine) device.alive = true;
     device.pingSucceeded = onLine;
-    if (onLine) device.latestGoodPing = now_local();
+    if (onLine) device.latestGoodPing = new Date();
 
     if (prevPingSucceeded !== onLine) {
       if (onLine && !device.macAddress) {
