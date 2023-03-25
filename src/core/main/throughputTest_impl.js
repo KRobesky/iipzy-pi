@@ -1,7 +1,6 @@
 const Defs = require("iipzy-shared/src/defs");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const { sleep } = require("iipzy-shared/src/utils/utils");
-const { now_local } = require("iipzy-shared/src/utils/time");
 
 const RoundRobinDB = require("./utils/roundRobinDB");
 const Iperf3 = require("./iperf3");
@@ -554,8 +553,7 @@ async function iperf3DoneFuncUploadThroughput(code, avgThoughputMBits) {
     testState = hideButton = false;
     stopWatchdogTimer();
     ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState }));
-    //timeOfTest = new Date().toString();
-    timeOfTest = now_local();
+    timeOfTest = new Date();
     log(
       "iperf3DoneFuncDetermineIploadThroughput: timeOfTest = " + timeOfTest,
       "tput",
