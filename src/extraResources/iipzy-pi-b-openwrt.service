@@ -5,7 +5,7 @@ START=99
 USE_PROCD=1
 
 SERVICE_NAME="iipzy-service-b"
-SERVICE_COMMAND="/usr/bin/node /home/pi/iipzy-service-a/iipzy-pi/src/index.js"
+SERVICE_COMMAND="/usr/bin/node /home/pi/iipzy-service-b/iipzy-pi/src/index.js"
 
 service_pidfile="/var/run/$SERVICE_NAME.pid"
 
