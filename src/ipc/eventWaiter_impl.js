@@ -51,7 +51,9 @@ setInterval(() => {
 
 function addEvent(event, data, forMain) {
   //
-  log("addEvent: event =  " + event + ", data = " + data, "ewtr", "info");
+  //log("eventWaiter.addEvent: event =  " + event + ", data = " + JSON.stringify(data), "ewtr", "info");
+  log("eventWaiter.addEvent: event =  " + event, "ewtr", "info");
+
   eventQueue.push({ timestamp: Date.now(), event, data, forMain });
 }
 
@@ -60,7 +62,8 @@ let loginStatus = Defs.loginStatusLoggedIn;
 async function eventWaiter() {
   const { timestamp, event, data, forMain } = await eventQueue.shift();
   //
-  log("eventWaiter: event =  " + event + ", data = " + data, "ewtr", "info");
+  //log("eventWaiter.eventWaiter: event =  " + event + ", data = " + JSON.stringify(data), "ewtr", "info");
+  log("eventWaiter.eventWaiter: event =  " + event, "ewtr", "info");
 
   latestEventTimestamp = timestamp;
   // clearedConnectionUuid = false;

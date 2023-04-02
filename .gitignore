@@ -1,2 +1,4 @@
 node_modules/
 coverage/
+src/core/main/trafficControl_impl.js
+src/core/main/trafficControl.js

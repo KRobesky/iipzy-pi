@@ -26,6 +26,8 @@ const pingPlot = require("./core/main/pingPlot");
 const scheduler = require("./core/main/scheduler");
 const throughputTest = require("./core/main/throughputTest");
 
+const TrafficControl = require("./core/main/trafficControl");
+
 const { changeTimezoneIfNecessary } = require("./utils/timezone");
 
 const actionHandler = require("./main/actionHandler");
@@ -48,6 +50,8 @@ let ipcRecv = null;
 let ipcSend = null;
 
 let server = null;
+
+let trafficControl = null;
 
 async function main() {
   const platformInfo_ = platformInfo.init();
@@ -191,8 +195,14 @@ async function main() {
   networkMonitor = new NetworkMonitor(context);
   // start in 10 seconds
   setTimeout(async () => {
-    await networkMonitor.start("eth0", "udp port 53");
+    await networkMonitor.start("br-lan", "udp port 53");
     //networkMonitor.start("eth0", "");
+  }, 10 * 1000);
+
+  trafficControl = new TrafficControl("testing", "br-lan", "157.245.180.54");
+    // start in 10 seconds
+    setTimeout(async () => {
+    trafficControl.run();
   }, 10 * 1000);
 
   //??wifiService = new WifiService(context);

@@ -1,6 +1,7 @@
 const { spawn } = require("child_process");
 
 const { log } = require("iipzy-shared/src/utils/logFile");
+const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 
 let doSimulateDroppedPackets = false;
 
@@ -24,7 +25,7 @@ class Ping {
     this.target = target;
     this.durationSeconds = durationSeconds ? durationSeconds : 0;
     this.intervalSeconds = intervalSeconds ? intervalSeconds : 1;
-    this.wantNetRate = wantNetRate;
+    this.wantNetRate = wantNetRate ? wantNetRate : false;
     
     this.cancelled = false;
 
@@ -273,6 +274,41 @@ class Ping {
         this.doneFunc(code, json);
       }
     });
+  }
+
+  async ping(intf, target, timeoutSecs) {
+      log(
+        "ping.ping(" + this.title + ") intf = " + 
+          intf +
+          ", target = " +
+          target +
+          ", timeoutSecs = " +
+          timeoutSecs,
+        "ping",
+        "info"
+      );
+
+    try {
+      //??const { stdout, stderr } = await spawnAsync("ping", [target, "-I", intf, "-c", "1", "-w", timeoutSecs]);
+      const { stdout, stderr } = await spawnAsync("ping", [target, "-c", "1", "-w", timeoutSecs]);
+      //log("ping.ping: " + stdout, "ping", "info");
+      if (stderr) {
+        log("(Error) ping.ping: " + stderr, "ping", "error");
+        return null;
+      }
+
+      const lines = stdout.split('\n');
+      /*
+      for (let i =0; i < lines.length; i++) {
+        log("...ping line=" + lines[i]);
+      }
+      */
+  
+      return this.parsePingLineLinux(lines[1]);
+    } catch(ex) {
+      log("(Exception) ping.ping: " + ex, "ping", "error");
+      return null;
+    }
   }
  
   // netrate

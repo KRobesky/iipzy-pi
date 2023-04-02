@@ -12,16 +12,14 @@ class IpcSend {
   send(event, data) {
     //
     //
-    log("ipcSend: event = " + event + ", data = " + data, "send", "verbose");
+    //log("ipcSend.send: event = " + event + ", data = " + JSON.stringify(data), "send", "verbose");
+    log("ipcSend.send: event = " + event, "send", "verbose");
     addEvent(event, data, false);
   }
 
   sendToMain(event, data) {
-    log(
-      "ipcSend.emit: event = " + event + ", data = " + data,
-      "send",
-      "verbose"
-    );
+    //log("ipcSend.sendToMain: event = " + event + ", data = " + JSON.stringify(data), "send", "verbose");
+    log("ipcSend.sendToMain: event = " + event, "send", "verbose");
     addEvent(event, data, true);
   }
 }

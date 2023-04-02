@@ -9,6 +9,12 @@ const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 const { getGatewayIp, getPrivateIp, getPublicIp } = require("../utils/networkInfo");
 const { changeTimezoneIfNecessary } = require("../utils/timezone");
 
+///*
+//??testing
+//??const Ping = require("../core/main/ping");
+//*/
+//const TrafficControl = require("../core/main/trafficControl");
+
 // see if device has changed ip addresses.
 async function prerequisite(http, configFile) {
   log(">>>prerequisite", "preq", "info");
@@ -84,6 +90,24 @@ async function prerequisite(http, configFile) {
     await sleep(6 * 1000)
   }
   */
+ 
+  /*
+  //??testing
+  log("---calling Ping constructor");
+  const ping = new Ping("testing");
+  const pingRes = await ping.ping("ibm.com", 1);
+  log("---pingRes = " + JSON.stringify(pingRes));
+  */
+
+  /*
+  log("---calling TrafficControl constructor");
+  await sleep(1000);
+  const tc = new TrafficControl("testing", "br-lan", "ibm.com");
+  await sleep(1000);
+  await tc.run();
+  await sleep(1000);
+  */
+
 
   const ret = { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber };
 

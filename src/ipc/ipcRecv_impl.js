@@ -58,7 +58,8 @@ class IpcRecv {
     while (true) {
       const { event, data } = await this.eventQueue.shift();
 
-      log("...recvEvent: from queue - event = " + event + ", data = " + data, "recv", "info");
+      //log("...recvEvent: from queue - event = " + event + ", data = " + JSON.stringify(data), "recv", "info");
+      log("IpcRecv.run: from queue - event = " + event + ", data = " + JSON.stringify(data), "recv", "info");
 
       for (let i = 0; i < this.receivers.length; i++) {
         const receiver = this.receivers[i];
