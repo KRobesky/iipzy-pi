@@ -1,10 +1,9 @@
 const Defs = require("iipzy-shared/src/defs");
 const { log } = require("iipzy-shared/src/utils/logFile");
+const { getInterfaceName } = require("iipzy-shared/src/utils/networkInfo");
 //const { sleep } = require("iipzy-shared/src/utils/utils");
 
 const piLocalEvents = require("./utils/piLocalEvents");
-
-const { getInterfaceName } = require("../../utils/networkInfo");
 
 let ipcMain = null;
 

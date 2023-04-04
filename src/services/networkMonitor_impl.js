@@ -1,6 +1,7 @@
 const { spawn } = require("child_process");
 
 const { log } = require("iipzy-shared/src/utils/logFile");
+const { getGatewayIp, getPrivateIp, getPublicIp } = require("iipzy-shared/src/utils/networkInfo");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 
@@ -10,7 +11,6 @@ const {
   enableLocalNetworkDevicesFileWrite
 } = require("./networkScan");
 
-const { getGatewayIp, getPrivateIp, getPublicIp } = require("../utils/networkInfo");
 
 let networkMonitor = null;
 
