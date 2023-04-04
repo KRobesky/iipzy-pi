@@ -26,8 +26,6 @@ const pingPlot = require("./core/main/pingPlot");
 const scheduler = require("./core/main/scheduler");
 const throughputTest = require("./core/main/throughputTest");
 
-const TrafficControl = require("./core/main/trafficControl");
-
 const { changeTimezoneIfNecessary } = require("./utils/timezone");
 
 const actionHandler = require("./main/actionHandler");
@@ -198,14 +196,6 @@ async function main() {
     await networkMonitor.start("br-lan", "udp port 53");
     //networkMonitor.start("eth0", "");
   }, 10 * 1000);
-
-  /*
-  trafficControl = new TrafficControl("testing");
-  // start in 10 seconds
-  setTimeout(async () => {
-    trafficControl.run();
-  }, 10 * 1000);
-  */
 
   //??wifiService = new WifiService(context);
 
