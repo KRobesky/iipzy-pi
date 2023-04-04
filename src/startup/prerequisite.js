@@ -4,10 +4,9 @@ const Defs = require("iipzy-shared/src/defs");
 const { set_os_id } = require("iipzy-shared/src/utils/globals");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const { sleep } = require("iipzy-shared/src/utils/utils");
+const { getGatewayIp, getPrivateIp, getPublicIp } = require("iipzy-shared/src/utils/networkInfo");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
-
-const { getGatewayIp, getPrivateIp, getPublicIp } = require("../utils/networkInfo");
-const { changeTimezoneIfNecessary } = require("../utils/timezone");
+const { changeTimezoneIfNecessary } = require("iipzy-shared/src/utils/timezone");
 
 ///*
 //??testing
