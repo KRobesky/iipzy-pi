@@ -3,12 +3,12 @@ const path = require("path");
 
 const Defs = require("iipzy-shared/src/defs");
 const { log } = require("iipzy-shared/src/utils/logFile");
+const Ping = require("iipzy-shared/src/utils/ping");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 
 const { getPingTarget } = require("./services/iperf3Service");
 
 const RoundRobinDB = require("./utils/roundRobinDB");
-const Ping = require("./ping");
 
 const isWindows = process.platform === "win32";
 

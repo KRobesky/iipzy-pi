@@ -199,11 +199,13 @@ async function main() {
     //networkMonitor.start("eth0", "");
   }, 10 * 1000);
 
-  trafficControl = new TrafficControl("testing", "br-lan", "157.245.180.54");
-    // start in 10 seconds
-    setTimeout(async () => {
+  /*
+  trafficControl = new TrafficControl("testing");
+  // start in 10 seconds
+  setTimeout(async () => {
     trafficControl.run();
   }, 10 * 1000);
+  */
 
   //??wifiService = new WifiService(context);
 

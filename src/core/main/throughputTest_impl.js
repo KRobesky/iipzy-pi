@@ -1,10 +1,10 @@
 const Defs = require("iipzy-shared/src/defs");
+const Iperf3 = require("iipzy-shared/src/utils/iperf3");
 const { log } = require("iipzy-shared/src/utils/logFile");
+const Ping = require("iipzy-shared/src/utils/ping");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 
 const RoundRobinDB = require("./utils/roundRobinDB");
-const Iperf3 = require("./iperf3");
-const Ping = require("./ping");
 const Tick = require("./tick");
 const {
   cancelIperf3Run,

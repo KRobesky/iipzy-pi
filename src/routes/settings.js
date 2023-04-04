@@ -15,10 +15,10 @@ const {
   fileExistsAsync,
   fileRenameAsync
 } = require("iipzy-shared/src/utils/fileIO");
+const Ping = require("iipzy-shared/src/utils/ping");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 
 const heartbeat = require("../core/main/heartbeat");
-const Ping = require("../core/main/ping");
 
 //--const WifiService = require("../services/wifiService");
 
