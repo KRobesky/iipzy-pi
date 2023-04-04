@@ -12,9 +12,9 @@ logInit(logPath, "iipzy-pi");
 const { ConfigFile } = require("iipzy-shared/src/utils/configFile");
 const http = require("iipzy-shared/src/services/httpService");
 const periodicHandler = require("iipzy-shared/src/utils/periodicHandler");
+const platformInfo = require("iipzy-shared/src/util/platformInfo");
 const { processErrorHandler } = require("iipzy-shared/src/utils/utils");
 
-const platformInfo = require("./core/common/platformInfo");
 const piLocalEvents = require("./core/main/utils/piLocalEvents");
 const { IpcRecv } = require("./ipc/ipcRecv");
 const IpcSend = require("./ipc/ipcSend");
