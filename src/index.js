@@ -13,6 +13,7 @@ const { ConfigFile } = require("iipzy-shared/src/utils/configFile");
 const http = require("iipzy-shared/src/services/httpService");
 const periodicHandler = require("iipzy-shared/src/utils/periodicHandler");
 const platformInfo = require("iipzy-shared/src/utils/platformInfo");
+const { changeTimezoneIfNecessary } = require("iipzy-shared/src/utils/timezone");
 const { processErrorHandler } = require("iipzy-shared/src/utils/utils");
 
 const piLocalEvents = require("./core/main/utils/piLocalEvents");
@@ -26,7 +27,6 @@ const pingPlot = require("./core/main/pingPlot");
 const scheduler = require("./core/main/scheduler");
 const throughputTest = require("./core/main/throughputTest");
 
-const { changeTimezoneIfNecessary } = require("./utils/timezone");
 
 const actionHandler = require("./main/actionHandler");
 const auth = require("./main/auth");
