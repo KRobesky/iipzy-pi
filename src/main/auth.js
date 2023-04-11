@@ -22,20 +22,20 @@ async function login() {
   log(">>>login", "auth", "info");
   // see if we hve a serverIPAddress.
   if (!http.getBaseURL()) {
-    handleCompletion("", "", "", Defs.loginStatusNoServerAddress);
+    await handleCompletion("", "", "", Defs.loginStatusNoServerAddress);
     return;
   }
   // get credentials from config file.
   const userName = configFile.get("userName");
   log("auth.login: userName = " + userName, "auth", "info");
   if (!userName) {
-    handleCompletion("", "", "", Defs.loginStatusLoginFailed);
+    await handleCompletion("", "", "", Defs.loginStatusLoginFailed);
     return;
   }
 
   const passwordEncrypted = configFile.get("password");
   if (!passwordEncrypted) {
-    handleCompletion(userName, "", "", Defs.loginStatusLoginFailed);
+    await handleCompletion(userName, "", "", Defs.loginStatusLoginFailed);
     return;
   }
   const passwordDecrypted = decrypt(passwordEncrypted);
@@ -49,7 +49,7 @@ async function login() {
   log("login: status = " + status, "auth", "info");
   if (status === Defs.httpStatusOk) {
     log("login: succeeded", "auth", "info");
-    handleCompletion(
+    await handleCompletion(
       userName,
       passwordDecrypted,
       data.authToken,
@@ -61,10 +61,10 @@ async function login() {
     data.__hadError__ &&
     data.__hadError__.statusCode === Defs.statusInvalidCredentials
   ) {
-    handleCompletion(userName, "", "", Defs.loginStatusLoginFailed);
+    await handleCompletion(userName, "", "", Defs.loginStatusLoginFailed);
   } else {
     log("login: failed", "auth", "info");
-    handleCompletion(userName, "", "", Defs.loginStatusLoggedOut);
+    await handleCompletion(userName, "", "", Defs.loginStatusLoggedOut);
   }
 
   log("<<<login", "auth", "info");
@@ -76,7 +76,7 @@ async function logout(userName) {
   const { data, status } = results;
   if (status === Defs.httpStatusOk) {
     log("logout: succeeded", "auth", "info");
-    handleCompletion(userName, "", "", Defs.loginStatusLoggedOut);
+    await handleCompletion(userName, "", "", Defs.loginStatusLoggedOut);
   } else {
     log("logout: failed", "auth", "info");
     handleCompletion(userName, "", "", Defs.loginStatusLoggedOut);
@@ -85,7 +85,7 @@ async function logout(userName) {
   log("<<<logout", "auth", "info");
 }
 
-function handleCompletion(userName, passwordDecrypted, authToken, loginStatus) {
+async function handleCompletion(userName, passwordDecrypted, authToken, loginStatus) {
   log(
     "handleCompletion: userName=" +
       userName +
@@ -100,9 +100,11 @@ function handleCompletion(userName, passwordDecrypted, authToken, loginStatus) {
   if (loginStatus === Defs.loginStatusLoggedIn) {
     loggedInUserName = userName;
     loggedInPasswordDecrypted = passwordDecrypted;
+    await configFile.set("authToken", authToken);
   } else {
     loggedInUserName = null;
     loggedInPasswordDecrypted = null;
+    await configFile.set("authToken", null);
   }
 
   // set http header.
