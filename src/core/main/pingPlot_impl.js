@@ -148,8 +148,9 @@ async function init(context) {
 
   const pingTarget_ = configFile.get("pingTarget");
   if (pingTarget_) pingTarget = pingTarget_;
+  const ptcMode = configFile.get("tcMode");
 
-  ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true);
+  ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true, tcMode);
   ping.run();
 
   setInterval(async () => {
