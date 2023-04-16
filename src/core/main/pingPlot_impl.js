@@ -53,6 +53,39 @@ const createNumEntries = _30daysAt5SecondIntervals;
 
 let inCheckPingTarget = false;
 
+function readMapper(joRaw) {
+  //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
+  const joRet = {
+      timeMillis:			  joRaw.tm,
+      dropped:			    joRaw.dr,
+      timeStamp:			  joRaw.ts,
+      rx_rate_bits:		  joRaw.rx,
+      tx_rate_bits:		  joRaw.tx,
+      rx_rate_dns_bits:	joRaw.rxd,
+      rx_rate_rt_bits:	joRaw.rxr,
+      tx_rate_dns_bits:	joRaw.txd,
+      tx_rate_rt_bits:	joRaw.txr,
+      saved:				    joRaw.sv
+  }
+  //log("---readMapper: joRet = " + JSON.stringify(joRet));
+  return joRet;
+}
+
+function writeMapper(jo) {
+  return {
+    tm: jo.timeMillis,
+    dr: jo.dropped,
+    ts: jo.timeStamp,
+    rx: jo.rx_rate_bits,
+    tx: jo.tx_rate_bits,
+    rxd: jo.rx_rate_dns_bits,
+    rxr: jo.rx_rate_rt_bits,	
+    txd: jo.tx_rate_dns_bits,
+    txr: jo.tx_rate_rt_bits,	
+    sv: jo.saved
+  };
+}
+
 async function init(context) {
   log("...pingPlot.init", "plot", "info");
 
@@ -118,7 +151,7 @@ async function init(context) {
 
   if (!_standAlone) return;
 
-  roundRobinDB = new RoundRobinDB(_userDataPath, "pingPlot", rrdbDataSize, createNumEntries);
+  roundRobinDB = new RoundRobinDB(_userDataPath, "pingPlot", rrdbDataSize, createNumEntries, readMapper, writeMapper);
 
   const pingPlotZip = path.resolve(__dirname, "../../../extraResources/pingPlot.rrdb.gz");
 

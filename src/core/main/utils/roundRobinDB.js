@@ -10,7 +10,7 @@ const { log } = require("iipzy-shared/src/utils/logFile");
 const entryHeaderSize = 42;
 
 class RoundRobinDB {
-  constructor(userDataPath, fileName, entrySize, maxEntries) {
+  constructor(userDataPath, fileName, entrySize, maxEntries, readMapperFunc, writeMapperFunc) {
     log(
       "RoundRobinDB.constructor: userDataPath = " +
         userDataPath +
@@ -27,6 +27,8 @@ class RoundRobinDB {
     this.fileName = fileName;
     this.entrySize = entrySize + entryHeaderSize;
     this.maxEntries = maxEntries;
+    this.readMapperFunc = readMapperFunc;
+    this.writeMapperFunc = writeMapperFunc;
     this.headerSize = 120;
     this.nextEntryIndex = 0;
     this.lap = 0;
@@ -342,6 +344,8 @@ class RoundRobinDB {
       throw new Error(msg);
     }
 
+    const dataToWrite = this.writeMapperFunc ? JSON.stringify(this.writeMapperFunc(JSON.parse(dataSansNewLine))) : dataSansNewLine;
+
     const id = this.nextId;
 
     if (linkId && linkId != 0) this.linkId = linkId;
@@ -357,7 +361,7 @@ class RoundRobinDB {
     );
     if (this.nextId > this.linkId + this.getNumEntries()) this.linkId = 0;
 
-    const data = '\n{"id":' + id + ',"linkId":' + this.linkId + ',"data":' + dataSansNewLine + "},";
+    const data = '\n{"id":' + id + ',"linkId":' + this.linkId + ',"data":' + dataToWrite + "},";
 
     if (data.length + 1 > this.entrySize) {
       const msg = "roundRobinDB: data longer than entry size";
@@ -511,6 +515,18 @@ class RoundRobinDB {
       if (json.length > 1) json = json.substring(0, last);
     }
     json += "]}";
+
+    if (this.readMapperFunc) {
+      let joRaw = JSON.parse(json);
+      let mappedEntries = [];
+      for (let i = 0; i < joRaw.entries.length; i++) {
+        const entry = joRaw.entries[i];
+        entry.data = this.readMapperFunc(joRaw.entries[i].data);
+        mappedEntries.push(entry)      
+      }
+      joRaw.entries = mappedEntries;
+      json = JSON.stringify(joRaw);
+    }
 
     // // fixup out of range linkIds
     // const minId = this.nextId - this.getNumEntries();
