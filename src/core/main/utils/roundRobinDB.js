@@ -72,12 +72,12 @@ class RoundRobinDB {
         log("..about to parse " + bufAsString, "rrdb", "info");
         const jo = JSON.parse(bufAsString);
         log("...rrdb, json = " + jo.toString(), "rrdb", "info");
-        this.headerSize = jo["headerSize"];
-        this.entrySize = jo["entrySize"];
-        this.maxEntries = jo["maxEntries"];
-        this.nextEntryIndex = jo["entryIndex"];
-        this.linkId = jo["linkId"];
-        this.lap = jo["lap"];
+        this.headerSize = jo.headerSize;
+        this.entrySize = jo.entrySize;
+        this.maxEntries = jo.maxEntries;
+        this.nextEntryIndex = jo.entryIndex;
+        this.linkId = jo.linkId;
+        this.lap = jo.lap;
         this.nextId = this.nextEntryIndex + 1 + this.lap * this.maxEntries;
       }
     } else {
@@ -162,10 +162,10 @@ class RoundRobinDB {
           log("..about to parse " + bufAsString, "rrdb", "info");
           const jo = JSON.parse(bufAsString);
           log("...rrdb, json = " + jo.toString(), "rrdb", "info");
-          const headerSize = jo["headerSize"];
-          //const entryIndex = jo["entryIndex"];
-          const entrySize = jo["entrySize"];
-          const maxEntries = jo["maxEntries"];
+          const headerSize = jo.headerSize;
+          //const entryIndex = jo.entryIndex;
+          const entrySize = jo.entrySize;
+          const maxEntries = jo.maxEntries;
           const stat = await fileStatAsync(this.path);
           const sizeSansHeader = stat.size - headerSize;
           log(
@@ -332,19 +332,21 @@ class RoundRobinDB {
     return numWritten;
   }
 
-  // NB: assumes that dataSansNewLine is a JSON object.
-  write(dataSansNewLine, linkId) {
-    log("roundRobinDB.write: data =  " + dataSansNewLine + ", linkId = " + linkId, "rrdb", "info");
+  // NB: assumes that data is a JSON object.
+  write(data, linkId) {
+    log("roundRobinDB.write: data =  " + JSON.stringify(data) + ", linkId = " + linkId, "rrdb", "info");
 
     if (this.fd === null) return;
 
+    /*
     if (!dataSansNewLine.startsWith("{")) {
       const msg = "roundRobinDB: data must be a JSON object";
       log("(Error) roundRobinDB.write: " + msg, "rrdb", "error");
       throw new Error(msg);
     }
+    */
 
-    const dataToWrite = this.writeMapperFunc ? JSON.stringify(this.writeMapperFunc(JSON.parse(dataSansNewLine))) : dataSansNewLine;
+    const dataToWrite = this.writeMapperFunc ? this.writeMapperFunc(data) : data;
 
     const id = this.nextId;
 
@@ -476,56 +478,43 @@ class RoundRobinDB {
       "rrdb"
     );
 
-    let json =
-      '{"maxEntries":' +
-      this.maxEntries +
-      ', "numEntries":' +
-      this.getNumEntries() +
-      ', "oldest":' +
-      (startNumEntriesBack === this.getNumEntries()) +
-      ', "newest":' +
-      (startNumEntriesBack === readCount) +
-      ', "indexFirst":' +
-      startIndex1 +
-      ', "highestId":' +
-      (this.nextId - 1) +
-      ', "entries":[';
+    let joRet = {
+      maxEntries: this.maxEntries,
+      numEntries: this.getNumEntries(),
+      oldest:     (startNumEntriesBack === this.getNumEntries()),
+      newest:     (startNumEntriesBack === readCount),
+      indexFirst: startIndex1,
+      highestId:  (this.nextId - 1),
+      entries:    []
+    };
+
     const { bytesRead, buffer } = await this.readChunk(offset1, size1);
     log("..byteRead1=" + bytesRead, "rrdb", "info");
     if (bytesRead > 0) {
-      json += buffer.toString();
+      const jaBuffer = JSON.parse(buffer.toString());
+      for (let i = 0; i < jaBuffer.length; i++) {
+        if (this.readMapperFunc) {
+          joRet.entries.push(this.readMapperFunc(jaBuffer[i]));
+        } else {
+          joRet.entries.push(jaBuffer[i]);
+        }
+      }
     }
-
     //log("json1=" + json, "rrdb", "info");
 
     if (size2 != 0) {
       const { bytesRead, buffer } = await this.readChunk(offset2, size2);
       log("..byteRead2=" + bytesRead, "rrdb", "info");
       if (bytesRead > 0) {
-        json += buffer.toString();
+        const jaBuffer = JSON.parse(buffer.toString());
+        for (let i = 0; i < jaBuffer.length; i++) {
+          if (this.readMapperFunc) {
+            joRet.entries.push(this.readMapperFunc(jaBuffer[i]));
+          } else {
+            joRet.entries.push(jaBuffer[i]);
+          }
+        }
       }
-    }
-
-    //log("json2=" + json, "rrdb", "info");
-
-    // remove last ","
-    log("json.length=" + json.length, "rrdb", "info");
-    if (bytesRead > 0) {
-      const last = json.lastIndexOf(",");
-      if (json.length > 1) json = json.substring(0, last);
-    }
-    json += "]}";
-
-    if (this.readMapperFunc) {
-      let joRaw = JSON.parse(json);
-      let mappedEntries = [];
-      for (let i = 0; i < joRaw.entries.length; i++) {
-        const entry = joRaw.entries[i];
-        entry.data = this.readMapperFunc(joRaw.entries[i].data);
-        mappedEntries.push(entry)      
-      }
-      joRaw.entries = mappedEntries;
-      json = JSON.stringify(joRaw);
     }
 
     // // fixup out of range linkIds
@@ -553,7 +542,7 @@ class RoundRobinDB {
     //log("json=" + json, "rrdb", "info");
 
     log("...<<<read most recent", "rrdb", "info");
-    return json;
+    return joRet;
   }
 
   async readId(id, readCount, movingForward) {

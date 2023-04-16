@@ -36,16 +36,13 @@ class Tick {
     );
     if (!this.done && this.tickNum < this.numTicks) {
       this.tickNum++;
-      const json =
-        '{"numTicks":' +
-        this.numTicks +
-        ',"tickNum":' +
-        this.tickNum +
-        ',"timeStamp":' +
-        Date.now() +
-        "}";
+      const jo = {
+        numTicks:   this.numTicks,
+        tickNum:    this.tickNum,
+        timeStamp:  Date.now()
+      }
 
-      this.dataFunc(json);
+      this.dataFunc(jo);
     }
   }
 

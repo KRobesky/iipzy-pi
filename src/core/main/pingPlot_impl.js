@@ -213,9 +213,8 @@ async function buildDroppedArray(linkIdHead) {
   log(">>>buildDroppedArray: linkIdHead = " + linkIdHead, "plot", "info");
   try {
     if (linkIdHead) {
-      const json = await roundRobinDB.read(dbNumEntries, dbNumEntries);
-      if (json != null) {
-        const jo = JSON.parse(json);
+      const jo = await roundRobinDB.read(dbNumEntries, dbNumEntries);
+      if (jo) {
         const ja = jo.entries;
         const baseId = ja[0].id;
         log("-----baseId = " + baseId, "plot", "info");
@@ -521,20 +520,19 @@ function computePositionInfo(jo) {
   );
 }
 
-async function pingDataFunc(json) {
+async function pingDataFunc(joData) {
   log(
-    "...>>>pingPlot.dataFunc: json = " + json + ", sendLatestToWindow = " + sendLatestToWindow,
+    "...>>>pingPlot.dataFunc: joData = " + JSON.stringify(joData) + ", sendLatestToWindow = " + sendLatestToWindow,
     "plot",
     "info"
   );
 
-  if (json === "{}") return;
+  if (!joData) return;
 
-  const { numEntries, id, linkId } = roundRobinDB.write(json, dbLinkId);
+  const { numEntries, id, linkId } = roundRobinDB.write(joData, dbLinkId);
   dbNumEntries = numEntries;
   dbLinkId = linkId;
 
-  const joData = JSON.parse(json);
   if (joData.dropped) dbLinkId = id;
   log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
 
@@ -550,31 +548,25 @@ async function pingDataFunc(json) {
   await checkPingSuccess(joData);
 
   if (sendLatestToWindow) {
-    ////
-    let jsonWithStats =
-      '{"maxEntries":' +
-      dbMaxEntries +
-      ', "numEntries":' +
-      dbNumEntries +
-      ', "oldest":false' +
-      ', "newest":true' +
-      ', "droppedLeft":' +
-      (latestClumpId > 0) +
-      ', "droppedRight":false' +
-      ', "entries":[{"id":' +
-      id +
-      ', "linkId":' +
-      dbLinkId +
-      ', "data":';
-    jsonWithStats += json;
-    jsonWithStats += "}]}";
+    let joWithStats = {
+      maxEntries:   dbMaxEntries,
+      numEntries:   dbNumEntries,
+      oldest:       false,
+      newest:       true,
+      droppedLeft:  (latestClumpId > 0),
+      droppedRight: false,
+      entries:      [{id:id,
+                      linkId:dbLinkId,
+                      data:joData
+                    }]
+    }
 
     //
-    log("...jsonWithStats=" + jsonWithStats, "plot", "info");
+    log("...jsonWithStats=" + jJSON.stringify(joWithStats), "plot", "info");
 
-    ipcSend.send(Defs.ipcPingPlotData, JSON.parse(jsonWithStats));
+    ipcSend.send(Defs.ipcPingPlotData, joWithStats);
   }
-  log("...<<<pingPlot.dataFunc = " + json, "plot", "info");
+  log("...<<<pingPlot.dataFunc", "plot", "info");
 }
 
 async function filter(jo, numSamples) {
@@ -708,11 +700,10 @@ async function pingPlotWindowMountEx(event, data) {
 
   leftPos = atHome ? numPointsSamples : leftPos;
 
-  const json = await roundRobinDB.read(leftPos, numPointsSamples);
+  const jo = await roundRobinDB.read(leftPos, numPointsSamples);
 
   try {
-    const jo = JSON.parse(json);
-    computePositionInfo(jo);
+     computePositionInfo(jo);
 
     jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
     jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
@@ -721,7 +712,7 @@ async function pingPlotWindowMountEx(event, data) {
 
     ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
   } catch (err) {
-    log("(Exception) failed to parse json: " + err, "plot", "error");
+    log("(Exception) pingPlotWindowMount: " + err, "plot", "error");
   }
 
   sendLatestToWindow = atHome;
@@ -738,9 +729,8 @@ async function pingPlotWindowButtonHomeEx(event, data) {
   currentClumpId = latestClumpId;
   droppedScrollDirection = DROPPED_SCROLL_DIRECTION_NONE;
 
-  const json = await roundRobinDB.read(numPointsSamples, numPointsSamples);
+  const jo = await roundRobinDB.read(numPointsSamples, numPointsSamples);
   try {
-    const jo = JSON.parse(json);
     computePositionInfo(jo);
 
     jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
@@ -754,7 +744,7 @@ async function pingPlotWindowButtonHomeEx(event, data) {
 
     ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
   } catch (err) {
-    log("(Exception) failed to parse json: " + err, "plot", "error");
+    log("(Exception) pingPlotWindowButtonHome: " + err, "plot", "error");
   }
 
   sendLatestToWindow = true;
@@ -773,9 +763,8 @@ async function pingPlotWindowButtonLeftEx(event, data) {
   leftPos =
     leftPos === 0 ? numPointsSamples + numScrollUnitSamples : leftPos + numScrollUnitSamples;
 
-  const json = await roundRobinDB.read(leftPos, numPointsSamples);
+  const jo = await roundRobinDB.read(leftPos, numPointsSamples);
   try {
-    const jo = JSON.parse(json);
     computePositionInfo(jo);
 
     jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
@@ -808,9 +797,8 @@ async function pingPlotWindowButtonLeftDroppedEx(event, data) {
     const droppedId = clump.id + Math.floor(clump.length / 2);
     const center = (numPointsSamples / 2) | 0;
 
-    const json = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
-    if (json != null) {
-      const jo = JSON.parse(json);
+    const jo = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
+    if (jo) {
       computePositionInfo(jo);
 
       jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 1;
@@ -842,9 +830,8 @@ async function pingPlotWindowButtonRightEx(event, data) {
       atHome = true;
     }
 
-    const json = await roundRobinDB.read(leftPos, numPointsSamples);
+    const jo = await roundRobinDB.read(leftPos, numPointsSamples);
     try {
-      const jo = JSON.parse(json);
       computePositionInfo(jo);
 
       jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
@@ -880,9 +867,8 @@ async function pingPlotWindowButtonRightDroppedEx(event, data) {
     const droppedId = clump.id + Math.floor(clump.length / 2);
     const center = (numPointsSamples / 2) | 0;
 
-    const json = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
-    if (json != null) {
-      const jo = JSON.parse(json);
+    const jo = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
+    if (jo) {
       computePositionInfo(jo);
 
       jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
@@ -926,12 +912,11 @@ async function pingPlotWindowButtonZoomChangeEx(event, data) {
   let newLeftPos = centerPos + numPointsSamplesHalf - moveOffset;
   leftPos = Math.max(newLeftPos, numPointsSamples);
 
-  const json = await roundRobinDB.read(leftPos, numPointsSamples);
+  const jo = await roundRobinDB.read(leftPos, numPointsSamples);
   try {
     //log("---before parse", "plot", "info");
     // // NB: allow other stuff to run.
     // if (numPointsSamples >= 20000) await sleep(500);
-    const jo = JSON.parse(json);
     // NB: allow other stuff to run.
     if (numPointsSamples >= 20000) await sleep(250);
     //log("---after parse", "plot", "info");

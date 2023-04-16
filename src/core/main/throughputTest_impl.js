@@ -123,9 +123,8 @@ async function init(context) {
   dbNumEntries = numEntries;
   dbLinkId = dbLinkIdLatest = linkId;
 
-  const json = await roundRobinDB.read(1, 1);
+  const joData = await roundRobinDB.read(1, 1);
   try {
-    const jo = JSON.parse(json);
     const ja = jo.entries;
     if (ja.length > 0) {
       const jrow = ja[0];
@@ -147,7 +146,7 @@ async function init(context) {
       }
     }
   } catch (err) {
-    log("(Exception) ThroughputTest.init - failed to parse json: " + err, "tput", "error");
+    log("(Exception) ThroughputTest.init: " + err, "tput", "error");
   }
   log("...ThroughputTest.init - AFTER new RoundRobinDB", "tput", "info");
 }
@@ -199,9 +198,9 @@ function startWatchdogTimer() {
     testState = hideButton = false;
     cancel();
     resetStatistics();
-    ipcSendIfEnabled(Defs.ipcClearDials, "{}");
+    ipcSendIfEnabled(Defs.ipcClearDials, {});
 
-    ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState }));
+    ipcSendIfEnabled(Defs.ipcTestingState, { testState });
 
     watchdogTimer = null;
   }, timeoutSeconds * 1000);
@@ -269,38 +268,32 @@ function doneFuncDontCare(code, val) {
 
 // determine nominal latency
 
-function tickDataFuncDetermineNominalLatency(json) {
+function tickDataFuncDetermineNominalLatency(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    numTicksNominalLatency = jo["numTicks"];
-    tickNumNominalLatency = jo["tickNum"];
     ipcSendIfEnabled(Defs.ipcTickStatusNominalLatency, {
-      numTicks: numTicksNominalLatency,
-      tickNum: tickNumNominalLatency
+      numTicks: jo.numTicks,
+      tickNum: jo.tickNum
     });
   }
 }
 
-function pingDataFuncDetermineNominalLatency(json) {
+function pingDataFuncDetermineNominalLatency(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    ipcSendIfEnabled(Defs.ipcNominalLatencyStatus, jo["timeMillis"]);
+    ipcSendIfEnabled(Defs.ipcNominalLatencyStatus, jo.timeMillis);
   }
 }
 
-function pingDoneFuncDetermineNominalLatency(code, json) {
-  log("pingDoneFuncDetermineNominalLatency: code = " + code + ", json = " + json, "tput", "info");
+function pingDoneFuncDetermineNominalLatency(code, jo) {
+  log("pingDoneFuncDetermineNominalLatency: code = " + code + ", jo = " + JSON.stringify(jo), "tput", "info");
 
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    nominalLatencyMillis = jo["avgMillis"];
-    ipcSendIfEnabled(Defs.ipcNominalLatencyStatusFinal, nominalLatencyMillis);
+    ipcSendIfEnabled(Defs.ipcNominalLatencyStatusFinal, jo.avgMillis);
   }
 
   determineDownloadThroughput();
@@ -337,49 +330,40 @@ async function determineNominalLatency() {
 
 // determine download throughput
 
-function tickDataFuncDownloadThroughput(json) {
+function tickDataFuncDownloadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    numTicksIperf3Down = jo["numTicks"];
-    tickNumIperf3Down = jo["tickNum"];
     ipcSendIfEnabled(Defs.ipcTickStatusIperf3Down, {
-      numTicks: numTicksIperf3Down,
-      tickNum: tickNumIperf3Down
+      numTicks: jo.numTicks,
+      tickNum: jo.tickNum
     });
   }
 }
 
-function pingDataFuncDownloadThroughput(json) {
+function pingDataFuncDownloadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    const timeMillis = jo["timeMillis"];
-    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3Down, timeMillis - nominalLatencyMillis);
+    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3Down, jo.timeMillis - nominalLatencyMillis);
   }
 }
 
-function pingDoneFuncDownloadThroughput(code, json) {
-  log("pingDoneFuncDownloadThroughput: code = " + code + ", json = " + json, "tput", "info");
+function pingDoneFuncDownloadThroughput(code, jo) {
+  log("pingDoneFuncDownloadThroughput: code = " + code + ", jo = " + JSON.stringify(jo), "tput", "info");
 
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    downloadBloatMillis = jo["avgMillis"] - nominalLatencyMillis;
-
-    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3DownFinal, downloadBloatMillis);
+    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3DownFinal, jo.avgMillis - nominalLatencyMillis);
   }
 }
 
-function iperf3DataFuncDownloadThroughput(json) {
+function iperf3DataFuncDownloadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    ipcSendIfEnabled(Defs.ipcIperf3StatusDown, jo["mbitsPerSec"]);
+    ipcSendIfEnabled(Defs.ipcIperf3StatusDown, jo.mbitsPerSec);
   }
 }
 
@@ -427,8 +411,8 @@ async function determineDownloadThroughput() {
           testState = hideButton = false;
           stopWatchdogTimer();
           resetStatistics();
-          ipcSendIfEnabled(Defs.ipcClearDials, "{}");
-          ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, failed: true }));
+          ipcSendIfEnabled(Defs.ipcClearDials, {});
+          ipcSendIfEnabled(Defs.ipcTestingState, { testState, failed: true });
           ipcSendIfEnabled(Defs.ipcThroughputTestFailedToGetServer, message);
           return;
         }
@@ -438,8 +422,8 @@ async function determineDownloadThroughput() {
         testState = hideButton = false;
         stopWatchdogTimer();
         resetStatistics();
-        ipcSendIfEnabled(Defs.ipcClearDials, "{}");
-        ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, failed: true }));
+        ipcSendIfEnabled(Defs.ipcClearDials, {});
+        ipcSendIfEnabled(Defs.ipcTestingState, { testState, failed: true });
         ipcSendIfEnabled(Defs.ipcThroughputTestFailedToGetServer, message);
         return;
       }
@@ -495,49 +479,40 @@ async function determineDownloadThroughput() {
 
 // determine upload throughput
 
-function tickDataFuncUploadThroughput(json) {
+function tickDataFuncUploadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    numTicksIperf3Up = jo["numTicks"];
-    tickNumIperf3Up = jo["tickNum"];
     ipcSendIfEnabled(Defs.ipcTickStatusIperf3Up, {
-      numTicks: numTicksIperf3Up,
-      tickNum: tickNumIperf3Up
+      numTicks: jo.numTicks,
+      tickNum: jo.tickNum
     });
   }
 }
 
-function pingDataFuncUploadThroughput(json) {
+function pingDataFuncUploadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    const timeMillis = jo["timeMillis"];
-    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3Up, timeMillis - nominalLatencyMillis);
+    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3Up, jo.timeMillis - nominalLatencyMillis);
   }
 }
 
-function pingDoneFuncUploadThroughput(code, json) {
-  log("pingDoneFuncUploadThroughput: code = " + code + ", json = " + json, "tput", "info");
+function pingDoneFuncUploadThroughput(code, jo) {
+  log("pingDoneFuncUploadThroughput: code = " + code + ", jo = " + JSON.stringify(jo), "tput", "info");
 
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    uploadBloatMillis = jo["avgMillis"] - nominalLatencyMillis;
-
-    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3UpFinal, uploadBloatMillis);
+    ipcSendIfEnabled(Defs.ipcBloatLatencyStatusIperf3UpFinal, jo.avgMillis - nominalLatencyMillis);
   }
 }
 
-function iperf3DataFuncUploadThroughput(json) {
+function iperf3DataFuncUploadThroughput(jo) {
   if (testState) {
-    if (json === "{}") return;
+    if (!jo) return;
 
-    const jo = JSON.parse(json);
-    ipcSendIfEnabled(Defs.ipcIperf3StatusUp, jo["mbitsPerSec"]);
+    ipcSendIfEnabled(Defs.ipcIperf3StatusUp, jo.mbitsPerSec);
   }
 }
 
@@ -552,7 +527,7 @@ async function iperf3DoneFuncUploadThroughput(code, avgThoughputMBits) {
     uploadThroughputMBits = avgThoughputMBits;
     testState = hideButton = false;
     stopWatchdogTimer();
-    ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState }));
+    ipcSendIfEnabled(Defs.ipcTestingState, { testState });
     timeOfTest = new Date();
     log(
       "iperf3DoneFuncDetermineIploadThroughput: timeOfTest = " + timeOfTest,
@@ -561,10 +536,7 @@ async function iperf3DoneFuncUploadThroughput(code, avgThoughputMBits) {
     );
     ipcSendIfEnabled(Defs.ipcTimeOfTest, timeOfTest);
     // write to rrdb.
-    const { numEntries, id } = await roundRobinDB.write(
-      JSON.stringify(getTestStatusFromCurrent().status),
-      dbLinkIdLatest
-    );
+    const { numEntries, id } = await roundRobinDB.write(getTestStatusFromCurrent().status, dbLinkIdLatest);
     dbNumEntries = numEntries;
   } else {
     cancel();
@@ -600,8 +572,8 @@ async function determineUploadThroughput() {
           testState = hideButton = false;
           stopWatchdogTimer();
           resetStatistics();
-          ipcSendIfEnabled(Defs.ipcClearDials, "{}");
-          ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, failed: true }));
+          ipcSendIfEnabled(Defs.ipcClearDials, {});
+          ipcSendIfEnabled(Defs.ipcTestingState, { testState, failed: true });
           ipcSendIfEnabled(Defs.ipcThroughputTestFailedToGetServer, message);
           return;
         }
@@ -611,8 +583,8 @@ async function determineUploadThroughput() {
         testState = hideButton = false;
         stopWatchdogTimer();
         resetStatistics();
-        ipcSendIfEnabled(Defs.ipcClearDials, "{}");
-        ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, failed: true }));
+        ipcSendIfEnabled(Defs.ipcClearDials, {});
+        ipcSendIfEnabled(Defs.ipcTestingState, { testState, failed: true });
         ipcSendIfEnabled(Defs.ipcThroughputTestFailedToGetServer, message);
         return;
       }
@@ -698,8 +670,8 @@ async function testWindowCancel(data) {
   stopWatchdogTimer();
   resetStatistics();
 
-  ipcSendIfEnabled(Defs.ipcClearDials, "{}");
-  ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, hideButton, testBusy }));
+  ipcSendIfEnabled(Defs.ipcClearDials, {});
+  ipcSendIfEnabled(Defs.ipcTestingState, { testState, hideButton, testBusy });
   await sendRecordAtPosition();
 }
 
@@ -716,10 +688,7 @@ function testWindowStart(isBackgroundTask, data) {
   );
 
   if (testState) {
-    ipcSendIfEnabled(
-      Defs.ipcTestingState,
-      JSON.stringify({ testState, hideButton, testBusy: true })
-    );
+    ipcSendIfEnabled( Defs.ipcTestingState,{ testState, hideButton, testBusy: true });
     return;
   }
 
@@ -741,7 +710,7 @@ function testWindowStart(isBackgroundTask, data) {
     uploadThroughputTestDurationSeconds = default_uploadThroughputTestDurationSeconds;
   }
   resetStatistics();
-  ipcSendIfEnabled(Defs.ipcClearDials, "{}");
+  ipcSendIfEnabled(Defs.ipcClearDials, {});
   ipcSendIfEnabled(Defs.ipcTimeOfTest, timeOfTest);
   retryCount = 5;
   startWatchdogTimer();
@@ -749,10 +718,7 @@ function testWindowStart(isBackgroundTask, data) {
 
   hideButton = testState && isBackgroundTask;
 
-  ipcSendIfEnabled(
-    Defs.ipcTestingState,
-    JSON.stringify({ testState, hideButton, testBusy: false })
-  );
+  ipcSendIfEnabled(Defs.ipcTestingState, { testState, hideButton, testBusy: false } );
 }
 
 function getTestStatusFromCurrent() {
@@ -785,14 +751,13 @@ function getTestStatusFromCurrent() {
 
 async function sendRecordAtPosition() {
   try {
-    const json = await roundRobinDB.read(dbScrollPos, 1);
-    const jo = JSON.parse(json);
+    const jo = await roundRobinDB.read(dbScrollPos, 1);
     const ja = jo.entries;
     if (ja.length > 0) {
       const jrow = ja[0];
       if (jrow) {
         const status = jrow.data;
-        ipcSend.send(Defs.ipcThrouputTestStatus, JSON.stringify(getTestStatusFromRecord(status)));
+        ipcSend.send(Defs.ipcThrouputTestStatus, getTestStatusFromRecord(status));
       }
     }
     enableDisableIpcSend();
@@ -849,7 +814,7 @@ async function testWindowMount(event, data) {
 
   log("testWindowMount: dbScrollPos = " + dbScrollPos, "tput", "info");
 
-  ipcSendIfEnabled(Defs.ipcTestingState, JSON.stringify({ testState, hideButton }));
+  ipcSendIfEnabled(Defs.ipcTestingState, { testState, hideButton });
 
   await sendRecordAtPosition();
 }
@@ -875,14 +840,13 @@ async function handleThroughputTestWindowButtonLeft(event, data) {
     log("...handleThroughputTestWindowButtonLeft: dbScrollPos = " + dbScrollPos, "tput", "info");
 
     try {
-      const json = await roundRobinDB.read(dbScrollPos, 1);
-      const jo = JSON.parse(json);
+      const jo = await roundRobinDB.read(dbScrollPos, 1);
       const ja = jo.entries;
       if (ja.length > 0) {
         const jrow = ja[0];
         if (jrow) {
           const status = jrow.data;
-          ipcSend.send(Defs.ipcThrouputTestStatus, JSON.stringify(getTestStatusFromRecord(status)));
+          ipcSend.send(Defs.ipcThrouputTestStatus, getTestStatusFromRecord(status));
         }
       }
       enableDisableIpcSend();
@@ -899,14 +863,13 @@ async function handleThroughputTestWindowButtonOldest(event, data) {
     log("...handleThroughputTestWindowButtonOldest: dbScrollPos = " + dbScrollPos, "tput", "info");
 
     try {
-      const json = await roundRobinDB.read(dbScrollPos, 1);
-      const jo = JSON.parse(json);
+      const jo = await roundRobinDB.read(dbScrollPos, 1);
       const ja = jo.entries;
       if (ja.length > 0) {
         const jrow = ja[0];
         if (jrow) {
           const status = jrow.data;
-          ipcSend.send(Defs.ipcThrouputTestStatus, JSON.stringify(getTestStatusFromRecord(status)));
+          ipcSend.send(Defs.ipcThrouputTestStatus, getTestStatusFromRecord(status));
         }
       }
       enableDisableIpcSend();
@@ -920,7 +883,7 @@ function handleThroughputTestWindowButtonNewest(event, data) {
   log("throughputTest handleThroughputTestWindowButtonNewest", "tput", "info");
 
   dbScrollPos = 1;
-  ipcSend.send(Defs.ipcThrouputTestStatus, JSON.stringify(getTestStatusFromCurrent()));
+  ipcSend.send(Defs.ipcThrouputTestStatus, getTestStatusFromCurrent());
   enableDisableIpcSend();
 }
 
@@ -932,14 +895,13 @@ async function handleThroughputTestWindowButtonRight(event, data) {
     log("...handleThroughputTestWindowButtonRight: dbScrollPos = " + dbScrollPos, "tput", "info");
 
     try {
-      const json = await roundRobinDB.read(dbScrollPos, 1);
-      const jo = JSON.parse(json);
+      const jo = await roundRobinDB.read(dbScrollPos, 1);
       const ja = jo.entries;
       if (ja.length > 0) {
         const jrow = ja[0];
         if (jrow) {
           const status = jrow.data;
-          ipcSend.send(Defs.ipcThrouputTestStatus, JSON.stringify(getTestStatusFromRecord(status)));
+          ipcSend.send(Defs.ipcThrouputTestStatus, getTestStatusFromRecord(status));
         }
       }
       enableDisableIpcSend();
