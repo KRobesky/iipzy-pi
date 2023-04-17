@@ -125,7 +125,7 @@ async function init(context) {
 
   const joData = await roundRobinDB.read(1, 1);
   try {
-    const ja = jo.entries;
+    const ja = joData.entries;
     if (ja.length > 0) {
       const jrow = ja[0];
       if (jrow) {

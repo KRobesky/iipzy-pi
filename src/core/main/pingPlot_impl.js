@@ -56,17 +56,18 @@ let inCheckPingTarget = false;
 function readMapper(joRaw) {
   //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
   const joRet = {
-      timeMillis:			  joRaw.tm,
-      dropped:			    joRaw.dr,
-      timeStamp:			  joRaw.ts,
-      rx_rate_bits:		  joRaw.rx,
-      tx_rate_bits:		  joRaw.tx,
-      rx_rate_dns_bits:	joRaw.rxd,
-      rx_rate_rt_bits:	joRaw.rxr,
-      tx_rate_dns_bits:	joRaw.txd,
-      tx_rate_rt_bits:	joRaw.txr,
-      saved:				    joRaw.sv
+    timeMillis:			  joRaw.tm,
+    dropped:			    joRaw.dr,
+    timeStamp:			  joRaw.ts,
+    rx_rate_bits:		  joRaw.rx,
+    tx_rate_bits:		  joRaw.tx,
+    rx_rate_dns_bits:	joRaw.rxd,
+    rx_rate_rt_bits:	joRaw.rxr,
+    tx_rate_dns_bits:	joRaw.txd,
+    tx_rate_rt_bits:	joRaw.txr,
+    saved:				    joRaw.saved
   }
+
   //log("---readMapper: joRet = " + JSON.stringify(joRet));
   return joRet;
 }
@@ -490,6 +491,7 @@ function computePositionInfo(jo) {
     "plot",
     "info"
   );
+
   dbHighestId = jo.highestId;
   const ja = jo.entries;
   const center = Math.round(ja.length / 2);
@@ -529,43 +531,40 @@ async function pingDataFunc(joData) {
 
   if (!joData) return;
 
-  const { numEntries, id, linkId } = roundRobinDB.write(joData, dbLinkId);
-  dbNumEntries = numEntries;
-  dbLinkId = linkId;
+  try {
+    const { numEntries, id, linkId } = roundRobinDB.write(joData, dbLinkId);
+    dbNumEntries = numEntries;
+    dbLinkId = linkId;
 
-  if (joData.dropped) dbLinkId = id;
-  log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
+    if (joData.dropped) dbLinkId = id;
+    log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
 
-  updateDroppedArray(id, joData.dropped);
+    updateDroppedArray(id, joData.dropped);
 
-  // log(
-  //   "...pingDataFunc, numEntries = " +
-  //     dbNumEntries +
-  //     " @" +
-  //     new Date().toISOString(), "plot", "info"
-  // );
+    await checkPingSuccess(joData);
 
-  await checkPingSuccess(joData);
+    if (sendLatestToWindow) {
+      let joWithStats = {
+        maxEntries:   dbMaxEntries,
+        numEntries:   dbNumEntries,
+        oldest:       false,
+        newest:       true,
+        droppedLeft:  (latestClumpId > 0),
+        droppedRight: false,
+        entries:      [{id:id,
+                        linkId:dbLinkId,
+                        data:joData
+                      }]
+      }
 
-  if (sendLatestToWindow) {
-    let joWithStats = {
-      maxEntries:   dbMaxEntries,
-      numEntries:   dbNumEntries,
-      oldest:       false,
-      newest:       true,
-      droppedLeft:  (latestClumpId > 0),
-      droppedRight: false,
-      entries:      [{id:id,
-                      linkId:dbLinkId,
-                      data:joData
-                    }]
+      //log("...jsonWithStats=" + JSON.stringify(joWithStats), "plot", "info");
+
+      ipcSend.send(Defs.ipcPingPlotData, joWithStats);     
     }
-
-    //
-    log("...jsonWithStats=" + jJSON.stringify(joWithStats), "plot", "info");
-
-    ipcSend.send(Defs.ipcPingPlotData, joWithStats);
+  } catch (ex) {
+    log("(Exception) pingPlot.dataFunc: " + ex, "plot", "error");
   }
+
   log("...<<<pingPlot.dataFunc", "plot", "info");
 }
 
@@ -692,18 +691,20 @@ async function pingPlotWindowMountEx(event, data) {
     "info"
   );
 
-  const { numPoints, numSamples, numScrollUnitSamples } = data;
-  const numPointsSamples = numPoints * numSamples;
-
-  //const atHome = leftPos === 0;
-  const atHome = leftPos <= numPointsSamples;
-
-  leftPos = atHome ? numPointsSamples : leftPos;
-
-  const jo = await roundRobinDB.read(leftPos, numPointsSamples);
-
   try {
-     computePositionInfo(jo);
+    const { numPoints, numSamples, numScrollUnitSamples } = data;
+    const numPointsSamples = numPoints * numSamples;
+
+    //const atHome = leftPos === 0;
+    const atHome = leftPos <= numPointsSamples;
+
+    leftPos = atHome ? numPointsSamples : leftPos;
+
+    const jo = await roundRobinDB.read(leftPos, numPointsSamples);
+
+    //log("..read jo ="+JSON.stringify(jo, null, 2));
+
+    computePositionInfo(jo);
 
     jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
     jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
@@ -711,11 +712,11 @@ async function pingPlotWindowMountEx(event, data) {
     log("...pingPlotWindowMount: leftPos = " + leftPos, "plot", "info");
 
     ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
-  } catch (err) {
-    log("(Exception) pingPlotWindowMount: " + err, "plot", "error");
-  }
 
-  sendLatestToWindow = atHome;
+    sendLatestToWindow = atHome;
+  } catch (ex) {
+    log("(Exception) pingPlotWindowMount: " + ex, "plot", "error");
+  }
 }
 
 async function pingPlotWindowButtonHomeEx(event, data) {

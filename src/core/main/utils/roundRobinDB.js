@@ -71,7 +71,7 @@ class RoundRobinDB {
         bufAsString = bufAsString.substring(0, n + 1);
         log("..about to parse " + bufAsString, "rrdb", "info");
         const jo = JSON.parse(bufAsString);
-        log("...rrdb, json = " + jo.toString(), "rrdb", "info");
+        log("...rrdb, jo = " + JSON.stringify(jo), "rrdb", "info");
         this.headerSize = jo.headerSize;
         this.entrySize = jo.entrySize;
         this.maxEntries = jo.maxEntries;
@@ -161,7 +161,7 @@ class RoundRobinDB {
           bufAsString = bufAsString.substring(0, n + 1);
           log("..about to parse " + bufAsString, "rrdb", "info");
           const jo = JSON.parse(bufAsString);
-          log("...rrdb, json = " + jo.toString(), "rrdb", "info");
+          log("...rrdb, jo = " + JSON.stringify(jo), "rrdb", "info");
           const headerSize = jo.headerSize;
           //const entryIndex = jo.entryIndex;
           const entrySize = jo.entrySize;
@@ -333,20 +333,20 @@ class RoundRobinDB {
   }
 
   // NB: assumes that data is a JSON object.
-  write(data, linkId) {
-    log("roundRobinDB.write: data =  " + JSON.stringify(data) + ", linkId = " + linkId, "rrdb", "info");
+  write(joData, linkId) {
+    log("roundRobinDB.write: joData =  " + JSON.stringify(joData) + ", linkId = " + linkId, "rrdb", "info");
 
     if (this.fd === null) return;
 
     /*
     if (!dataSansNewLine.startsWith("{")) {
-      const msg = "roundRobinDB: data must be a JSON object";
+      const msg = "roundRobinDB: joData must be a JSON object";
       log("(Error) roundRobinDB.write: " + msg, "rrdb", "error");
       throw new Error(msg);
     }
     */
 
-    const dataToWrite = this.writeMapperFunc ? this.writeMapperFunc(data) : data;
+    const joDataToWrite = this.writeMapperFunc ? this.writeMapperFunc(joData) : joData;
 
     const id = this.nextId;
 
@@ -363,8 +363,8 @@ class RoundRobinDB {
     );
     if (this.nextId > this.linkId + this.getNumEntries()) this.linkId = 0;
 
-    const data = '\n{"id":' + id + ',"linkId":' + this.linkId + ',"data":' + dataToWrite + "},";
-
+    const data = '\n' + JSON.stringify({ id: + id, linkId: this.linkId, data: joDataToWrite });
+    
     if (data.length + 1 > this.entrySize) {
       const msg = "roundRobinDB: data longer than entry size";
       console.error(msg);
@@ -489,30 +489,37 @@ class RoundRobinDB {
     };
 
     const { bytesRead, buffer } = await this.readChunk(offset1, size1);
-    log("..byteRead1=" + bytesRead, "rrdb", "info");
+    log("..bytesRead1=" + bytesRead, "rrdb", "info");
+    //log("..buffer=" + buffer, "rrdb", "info");
+
     if (bytesRead > 0) {
-      const jaBuffer = JSON.parse(buffer.toString());
-      for (let i = 0; i < jaBuffer.length; i++) {
+      // NB: First entry is empty because of leading \n.
+      const entries = buffer.toString().split('\n');
+      for (let i = 1; i < entries.length; i++) {
+        //log("..entry[" + i + "]="+ entries[i]);
+        let joEntry = JSON.parse(entries[i]);
+        //log("..entry="+ JSON.stringify(joEntry));
         if (this.readMapperFunc) {
-          joRet.entries.push(this.readMapperFunc(jaBuffer[i]));
-        } else {
-          joRet.entries.push(jaBuffer[i]);
+          joEntry.data = this.readMapperFunc(joEntry.data);
         }
+        joRet.entries.push(joEntry);
       }
     }
+
     //log("json1=" + json, "rrdb", "info");
 
     if (size2 != 0) {
       const { bytesRead, buffer } = await this.readChunk(offset2, size2);
       log("..byteRead2=" + bytesRead, "rrdb", "info");
       if (bytesRead > 0) {
-        const jaBuffer = JSON.parse(buffer.toString());
-        for (let i = 0; i < jaBuffer.length; i++) {
+        // NB: First entry is empty because of leading \n.
+        const entries = buffer.toString().split('\n');
+        for (let i = 1; i < entries.length; i++) {
+          let joEntry = JSON.parse(entries[i]);
           if (this.readMapperFunc) {
-            joRet.entries.push(this.readMapperFunc(jaBuffer[i]));
-          } else {
-            joRet.entries.push(jaBuffer[i]);
+            joEntry.data = this.readMapperFunc(joEntry.data);
           }
+          joRet.entries.push(joEntry);
         }
       }
     }
