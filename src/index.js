@@ -117,30 +117,7 @@ async function main() {
   await auth.init(context);
   await auth.login();
 
-  function configWatchCallback() {
-    log("configWatchCallback", "main", "info");
-    const logLevel_ = configFile.get("logLevel");
-    if (logLevel_ !== logLevel) {
-      log(
-        "configWatchCallback: logLevel change: old = " + logLevel + ", new = " + logLevel_,
-        "main",
-        "info"
-      );
-    }
-    if (logLevel_) {
-      // tell log.
-      logLevel = logLevel_;
-      setLogLevel(logLevel);
-    }
-  }
 
-  function netRateDataFunc(jsonString) {
-    log("netRateDataFunc: date = " + jsonString, "main", "info");
-  }
-  
-  function netRateDoneFunc(j) {
-    log("netRateDoneFunc", "main", "info");
-  }
 
   // dump device table
   ipcRecv.registerReceiver(Defs.ipcDumpSentinelDeviceTable, (event, data) => {
@@ -219,6 +196,23 @@ async function main() {
 
   //??
 
+}
+
+function configWatchCallback() {
+  log("configWatchCallback", "main", "info");
+  const logLevel_ = configFile.get("logLevel");
+  if (logLevel_ !== logLevel) {
+    log(
+      "configWatchCallback: logLevel change: old = " + logLevel + ", new = " + logLevel_,
+      "main",
+      "info"
+    );
+  }
+  if (logLevel_) {
+    // tell log.
+    logLevel = logLevel_;
+    setLogLevel(logLevel);
+  }
 }
 
 main();
