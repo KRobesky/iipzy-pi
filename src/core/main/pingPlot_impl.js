@@ -56,9 +56,9 @@ let inCheckPingTarget = false;
 function readMapper(joRaw) {
   //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
   const joRet = {
-    timeMillis:			  joRaw.tm,
-    mark:			        joRaw.mk,
     timeStamp:			  joRaw.ts,
+    mark:			        joRaw.mk,
+    timeMillis:			  joRaw.tm,
     rx_rate_bits:		  joRaw.rx,
     tx_rate_bits:		  joRaw.tx,
     rx_rate_dns_bits:	joRaw.rxd,
@@ -82,9 +82,9 @@ function readMapper(joRaw) {
 
 function writeMapper(jo) {
   return {
-    tm:     jo.timeMillis,
-    mk:     jo.mark,
     ts:     jo.timeStamp,
+    mk:     jo.mark,
+    tm:     jo.timeMillis,
     rx:     jo.rx_rate_bits,
     tx:     jo.tx_rate_bits,
     rxd:    jo.rx_rate_dns_bits,
@@ -634,7 +634,22 @@ async function filter(jo, numSamples) {
         const { id, linkId, data } = ja[i];
         //if (i === center) log("-----center = " + JSON.stringify(ja[i]));
         // NB: handle empty rows.
-        const { timeMillis, mark, timeStamp, rx_rate_bits, tx_rate_bits } = data.timeMillis !== undefined ? data : dataPrev;
+        const { 
+          timeStamp,
+          mark,
+          timeMillism,
+          rx_rate_bits,
+          tx_rate_bits,
+          rx_rate_dns_bits,
+          rx_rate_rt_bitsr,
+          tx_rate_dns_bits,
+          tx_rate_rt_bits,
+          temp_celsius,
+          cpu_utlz_user,  
+          cpu_utlz_nice,  
+          cpu_utlz_system,
+          cpu_utlz_iowait,
+          cpu_utlz_steal } = data.timeMillis !== undefined ? data : dataPrev;
         if (data.timeMillis !== undefined) {
           //log("---filter---saving prev");
           dataPrev = data;
@@ -660,11 +675,21 @@ async function filter(jo, numSamples) {
             id: sampleId,
             linkId: sampleLinkId,
             data: {
-              timeMillis: timeMillisAvg,
-              mark: mark,
               timeStamp: sampleTimeStamp,
-              rx_rate_bits: rx_rate_bits,
-              tx_rate_bits: tx_rate_bits,
+              mark,
+              timeMillism,
+              rx_rate_bits,
+              tx_rate_bits,
+              rx_rate_dns_bits,
+              rx_rate_rt_bitsr,
+              tx_rate_dns_bits,
+              tx_rate_rt_bits,
+              temp_celsius,
+              cpu_utlz_user,  
+              cpu_utlz_nice,  
+              cpu_utlz_system,
+              cpu_utlz_iowait,
+              cpu_utlz_steal
             }
           };
           jaRet.push(row);
