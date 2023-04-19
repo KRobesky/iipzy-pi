@@ -34,7 +34,7 @@ const {
 
 //--const wifiService = new WifiService();
 
-// for simulateDroppedPackets
+// for simulateDroppedPackets/simulateSaves
 const ping = new Ping("settings: simulate dropped packets", null, "", 0, 0, false);
 
 router.use(
@@ -257,6 +257,7 @@ router.get("/", async (req, res) => {
     sendLogs: true,
     serviceAddress: configFileGet("serverAddress"),
     simulateDroppedPackets: ping.getSimulateDroppedPackets(),
+    simulateSaves: ping.getSimulateSaves(),
     simulateOffLine: heartbeat.getSimulateOffline(),
     speedTestDataRestore: await filePresence_helper("throughput.rrdb"),
     wifiJoin: "",
@@ -311,6 +312,10 @@ router.post("/", async (req, res) => {
 
     if (settings.hasOwnProperty("simulateDroppedPackets")) {
       ping.setSimulateDroppedPackets(settings.simulateDroppedPackets);
+    }
+
+    if (settings.hasOwnProperty("simulateSaves")) {
+      ping.setSimulateSaves(settings.simulateSaves);
     }
 
     if (settings.hasOwnProperty("simulateOffLine")) {

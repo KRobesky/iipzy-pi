@@ -36,7 +36,7 @@ let centerId = 0;
 let dbMaxEntries = 0;
 let dbNumEntries = 0;
 let dbHighestId = 0;
-let dbLinkId = 0; // NB: backward link for dropped packets.
+let dbLinkId = 0; // NB: backward link for marked packets.
 
 let consecutiveDroppedPacketCount = 0;
 let firstDroppedPacketTimestamp = 0;
@@ -57,7 +57,7 @@ function readMapper(joRaw) {
   //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
   const joRet = {
     timeMillis:			  joRaw.tm,
-    dropped:			    joRaw.dr,
+    mark:			        joRaw.mk,
     timeStamp:			  joRaw.ts,
     rx_rate_bits:		  joRaw.rx,
     tx_rate_bits:		  joRaw.tx,
@@ -65,8 +65,16 @@ function readMapper(joRaw) {
     rx_rate_rt_bits:	joRaw.rxr,
     tx_rate_dns_bits:	joRaw.txd,
     tx_rate_rt_bits:	joRaw.txr,
-    saved:				    joRaw.saved
+    temp_celsius:     joRaw.tc,
+    cpu_utlz_user:    joRaw.cuu,  
+    cpu_utlz_nice:    joRaw.cun,  
+    cpu_utlz_system:  joRaw.cusy,
+    cpu_utlz_iowait:  joRaw.cuio,
+    cpu_utlz_steal:   joRaw.cust,
+    cpu_utlz_idle:    joRaw.cuidl,  
   }
+
+
 
   //log("---readMapper: joRet = " + JSON.stringify(joRet));
   return joRet;
@@ -74,16 +82,22 @@ function readMapper(joRaw) {
 
 function writeMapper(jo) {
   return {
-    tm: jo.timeMillis,
-    dr: jo.dropped,
-    ts: jo.timeStamp,
-    rx: jo.rx_rate_bits,
-    tx: jo.tx_rate_bits,
-    rxd: jo.rx_rate_dns_bits,
-    rxr: jo.rx_rate_rt_bits,	
-    txd: jo.tx_rate_dns_bits,
-    txr: jo.tx_rate_rt_bits,	
-    sv: jo.saved
+    tm:     jo.timeMillis,
+    mk:     jo.mark,
+    ts:     jo.timeStamp,
+    rx:     jo.rx_rate_bits,
+    tx:     jo.tx_rate_bits,
+    rxd:    jo.rx_rate_dns_bits,
+    rxr:    jo.rx_rate_rt_bits,	
+    txd:    jo.tx_rate_dns_bits,
+    txr:    jo.tx_rate_rt_bits,	
+    tc:     jo.temp_celsius,
+    cuu:    jo.cpu_utlz_user,
+    cun:    jo.cpu_utlz_nice,
+    cusy:   jo.cpu_utlz_system,
+    cuio:   jo.cpu_utlz_iowait,
+    cust:   jo.cpu_utlz_steal,
+    cuidl:  jo.cpu_utlz_idle,
   };
 }
 
@@ -200,15 +214,15 @@ async function init(context) {
   }, 60 * 1000);
 }
 
-// keep track of clumps of dropped pings.
-// Why?  So we can scroll directly to dropped packets.
-let droppedArray = [];
+// keep track of clumps of marked pings.
+// Why?  So we can scroll directly to marked packets.
+let markedArray = [];
 let currentClumpId = 0;
 let latestClumpId = 0;
-const DROPPED_SCROLL_DIRECTION_NONE = 0;
-const DROPPED_SCROLL_DIRECTION_LEFT = 1;
-const DROPPED_SCROLL_DIRECTION_RIGHT = 2;
-let droppedScrollDirection = DROPPED_SCROLL_DIRECTION_NONE;
+const MARKED_SCROLL_DIRECTION_NONE = 0;
+const MARKED_SCROLL_DIRECTION_LEFT = 1;
+const MARKED_SCROLL_DIRECTION_RIGHT = 2;
+let markedScrollDirection = MARKED_SCROLL_DIRECTION_NONE;
 
 async function buildDroppedArray(linkIdHead) {
   log(">>>buildDroppedArray: linkIdHead = " + linkIdHead, "plot", "info");
@@ -274,7 +288,7 @@ async function buildDroppedArray(linkIdHead) {
             clump.length = clump.rightId - clump.id + 1;
             // add to front of array.
             log("-----clump: " + JSON.stringify(clump, null, 2));
-            droppedArray.unshift(clump);
+            markedArray.unshift(clump);
             clumping = false;
           }
           prevId = id;
@@ -301,7 +315,7 @@ async function buildDroppedArray(linkIdHead) {
               clump.length = clump.rightId - clump.id + 1;
               // add to array.
               log("-----last clump: " + JSON.stringify(clump, null, 2));
-              droppedArray.unshift(clump);
+              markedArray.unshift(clump);
             }
             break;
           }
@@ -309,14 +323,14 @@ async function buildDroppedArray(linkIdHead) {
       }
     }
 
-    droppedArray.unshift({ id: 0, rightId: 0, length: 0 }); // dummy oldest entry uses droppedArray[0].
+    markedArray.unshift({ id: 0, rightId: 0, length: 0 }); // dummy oldest entry uses markedArray[0].
 
-    currentClumpId = latestClumpId = droppedArray.length - 1;
+    currentClumpId = latestClumpId = markedArray.length - 1;
 
-    log("droppedArray = " + JSON.stringify(droppedArray, null, 2), "plot", "info");
+    log("markedArray = " + JSON.stringify(markedArray, null, 2), "plot", "info");
   } catch (ex) {
     log("(Exception) buildDroppedArray: " + ex, "plot", "info");
-    droppedArray = [];
+    markedArray = [];
   }
 
   log("<<<buildDroppedArray", "plot", "info");
@@ -325,8 +339,8 @@ async function buildDroppedArray(linkIdHead) {
 let udaClumping = false;
 let udaClump = {};
 
-function updateDroppedArray(id, dropped) {
-  if (dropped) {
+function updateMarkedArray(id, mark) {
+  if (mark) {
     if (!udaClumping) {
       // start new clump.
       log("-----start new clump: id = " + id);
@@ -342,26 +356,26 @@ function updateDroppedArray(id, dropped) {
       udaClump.length = udaClump.rightId - udaClump.id + 1;
       // add to array.
       log("...final clump= " + JSON.stringify(udaClump));
-      droppedArray.push(udaClump);
+      markedArray.push(udaClump);
 
-      latestClumpId = droppedArray.length - 1;
+      latestClumpId = markedArray.length - 1;
 
       udaClumping = false;
 
-      log("droppedArray = " + JSON.stringify(droppedArray, null, 2), "plot", "info");
+      log("markedArray = " + JSON.stringify(markedArray, null, 2), "plot", "info");
     }
   }
 
   const oldestId = id - createNumEntries;
-  if (droppedArray.length > 1 && oldestId > 0) {
-    // see if oldest clump has been dropped.
-    const oldestClump = droppedArray[1];
+  if (markedArray.length > 1 && oldestId > 0) {
+    // see if oldest clump has been marked.
+    const oldestClump = markedArray[1];
     if (oldestClump.id <= oldestId) {
-      log("---dropping clump for id = " + oldestClump.id, "plot", "info");
-      log("droppedArray - before drop = " + JSON.stringify(droppedArray, null, 2), "plot", "info");
-      droppedArray.splice(1, 1);
-      latestClumpId = droppedArray.length - 1;
-      log("droppedArray after drop = " + JSON.stringify(droppedArray, null, 2), "plot", "info");
+      log("---marking clump for id = " + oldestClump.id, "plot", "info");
+      log("markedArray - before drop = " + JSON.stringify(markedArray, null, 2), "plot", "info");
+      markedArray.splice(1, 1);
+      latestClumpId = markedArray.length - 1;
+      log("markedArray after drop = " + JSON.stringify(markedArray, null, 2), "plot", "info");
     }
   }
 }
@@ -369,8 +383,8 @@ function updateDroppedArray(id, dropped) {
 function fundCurrentClumpLinear(centerId) {
   log(">>>fundCurrentClumpLinear: centerId = " + centerId, "plot", "info");
   let clumpId = 0;
-  for (let i = droppedArray.length - 1; i > 1; i--) {
-    const { id } = droppedArray[i];
+  for (let i = markedArray.length - 1; i > 1; i--) {
+    const { id } = markedArray[i];
     if (id < centerId) {
       clumpId = i;
       break;
@@ -387,11 +401,11 @@ function fundCurrentClumpBinary(centerId) {
   log(">>>fundCurrentClumpBinary: centerId = " + centerId, "plot", "info");
   let left = 0;
   let middle = 0;
-  let right = droppedArray.length - 1;
+  let right = markedArray.length - 1;
   let bias = 0;
   while (left <= right) {
     middle = Math.floor((left + right) / 2);
-    let middleId = droppedArray[middle].id;
+    let middleId = markedArray[middle].id;
     if (middleId < centerId) {
       left = middle + 1;
       bias = 0;
@@ -447,15 +461,15 @@ async function checkPingSuccess(joData) {
   // alert on any dropped.
 
   log(
-    ">>>pingPlot.checkPingSuccess: dropped = " +
-      joData.dropped +
+    ">>>pingPlot.checkPingSuccess: mark = " +
+      joData.mark +
       ", consecutive = " +
       consecutiveDroppedPacketCount,
     "plot",
     "info"
   );
 
-  if (joData.dropped) {
+  if (joData.mark & Defs.pingMarkedDropped) {
     consecutiveDroppedPacketCount++;
     if (consecutiveDroppedPacketCount === 1) firstDroppedPacketTimestamp = Date.now();
     lastDroppedPacketTimestamp = Date.now();
@@ -536,10 +550,10 @@ async function pingDataFunc(joData) {
     dbNumEntries = numEntries;
     dbLinkId = linkId;
 
-    if (joData.dropped) dbLinkId = id;
+    if (joData.mark) dbLinkId = id;
     log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
 
-    updateDroppedArray(id, joData.dropped);
+    updateMarkedArray(id, joData.mark);
 
     await checkPingSuccess(joData);
 
@@ -549,8 +563,8 @@ async function pingDataFunc(joData) {
         numEntries:   dbNumEntries,
         oldest:       false,
         newest:       true,
-        droppedLeft:  (latestClumpId > 0),
-        droppedRight: false,
+        markedLeft:  (latestClumpId > 0),
+        markedRight: false,
         entries:      [{id:id,
                         linkId:dbLinkId,
                         data:joData
@@ -606,7 +620,7 @@ async function filter(jo, numSamples) {
       let sampleLinkId = 0;
       let samplesNotDroppedCount = 0;
       let sampleMillisTotal = 0;
-      let sampleDropped = false;
+      //let sampleDropped = false;
       let sampleTimeStamp = null;
       let dataPrev = null;
       let s = 1;
@@ -620,7 +634,7 @@ async function filter(jo, numSamples) {
         const { id, linkId, data } = ja[i];
         //if (i === center) log("-----center = " + JSON.stringify(ja[i]));
         // NB: handle empty rows.
-        const { timeMillis, dropped, timeStamp, rx_rate_bits, tx_rate_bits } = data.timeMillis !== undefined ? data : dataPrev;
+        const { timeMillis, mark, timeStamp, rx_rate_bits, tx_rate_bits } = data.timeMillis !== undefined ? data : dataPrev;
         if (data.timeMillis !== undefined) {
           //log("---filter---saving prev");
           dataPrev = data;
@@ -630,8 +644,8 @@ async function filter(jo, numSamples) {
           continue;
         }
 
-        if (dropped) sampleDropped = true;
-        if (!dropped) {
+        //if (mark & Defs.pingMarkedDropped) sampleDropped = true;
+        if (!(mark & Defs.pingMarkedDropped)) {
           sampleMillisTotal += parseFloat(timeMillis);
           samplesNotDroppedCount++;
         }
@@ -647,7 +661,7 @@ async function filter(jo, numSamples) {
             linkId: sampleLinkId,
             data: {
               timeMillis: timeMillisAvg,
-              dropped: sampleDropped,
+              mark: mark,
               timeStamp: sampleTimeStamp,
               rx_rate_bits: rx_rate_bits,
               tx_rate_bits: tx_rate_bits,
@@ -658,7 +672,7 @@ async function filter(jo, numSamples) {
           sampleLinkId = 0;
           samplesNotDroppedCount = 0;
           sampleMillisTotal = 0;
-          sampleDropped = false;
+          //sampleDropped = false;
           sampleTimeStamp = null;
         }
       }
@@ -666,8 +680,8 @@ async function filter(jo, numSamples) {
       joRet.numEntries = jo.numEntries;
       joRet.oldest = jo.oldest;
       joRet.newest = jo.newest;
-      joRet.droppedLeft = jo.droppedLeft;
-      joRet.droppedRight = jo.droppedRight;
+      joRet.markedLeft = jo.markedLeft;
+      joRet.markedRight = jo.markedRight;
       joRet.prevDBLinkId = jo.prevDBLinkId;
       joRet.nextDBLinkId = jo.nextDBLinkId;
       joRet.entries = jaRet;
@@ -706,8 +720,8 @@ async function pingPlotWindowMountEx(event, data) {
 
     computePositionInfo(jo);
 
-    jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-    jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+    jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+    jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
     log("...pingPlotWindowMount: leftPos = " + leftPos, "plot", "info");
 
@@ -728,14 +742,14 @@ async function pingPlotWindowButtonHomeEx(event, data) {
   leftPos = 0;
 
   currentClumpId = latestClumpId;
-  droppedScrollDirection = DROPPED_SCROLL_DIRECTION_NONE;
+  markedScrollDirection = MARKED_SCROLL_DIRECTION_NONE;
 
   const jo = await roundRobinDB.read(numPointsSamples, numPointsSamples);
   try {
     computePositionInfo(jo);
 
-    jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-    jo.droppedRight = false;
+    jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+    jo.markedRight = false;
 
     log(
       "...pingPlotWindowButtonHome: leftPos = " + leftPos + ", centerPos = " + centerPos,
@@ -768,8 +782,8 @@ async function pingPlotWindowButtonLeftEx(event, data) {
   try {
     computePositionInfo(jo);
 
-    jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-    jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+    jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+    jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
     log("...pingPlotWindowButtonLeft: leftPos = " + leftPos, "plot", "info");
 
@@ -790,20 +804,20 @@ async function pingPlotWindowButtonLeftDroppedEx(event, data) {
   try {
     if (latestClumpId === 0) return;
 
-    if (droppedScrollDirection !== DROPPED_SCROLL_DIRECTION_NONE)
+    if (markedScrollDirection !== MARKED_SCROLL_DIRECTION_NONE)
       currentClumpId = Math.max(currentClumpId - 1, 1);
-    droppedScrollDirection = DROPPED_SCROLL_DIRECTION_LEFT;
+    markedScrollDirection = MARKED_SCROLL_DIRECTION_LEFT;
 
-    const clump = droppedArray[currentClumpId];
-    const droppedId = clump.id + Math.floor(clump.length / 2);
+    const clump = markedArray[currentClumpId];
+    const markedId = clump.id + Math.floor(clump.length / 2);
     const center = (numPointsSamples / 2) | 0;
 
-    const jo = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
+    const jo = await roundRobinDB.readId(markedId + center, numPointsSamples, false);
     if (jo) {
       computePositionInfo(jo);
 
-      jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 1;
-      jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+      jo.markedLeft = latestClumpId !== 0 && currentClumpId > 1;
+      jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
       ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
       sendLatestToWindow = false;
@@ -835,8 +849,8 @@ async function pingPlotWindowButtonRightEx(event, data) {
     try {
       computePositionInfo(jo);
 
-      jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-      jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+      jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+      jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
       log("...pingPlotWindowButtonRight: leftPos = " + leftPos, "plot", "info");
 
@@ -862,18 +876,18 @@ async function pingPlotWindowButtonRightDroppedEx(event, data) {
 
     if (currentClumpId === 0) currentClumpId++;
     currentClumpId = Math.min(currentClumpId + 1, latestClumpId);
-    droppedScrollDirection = DROPPED_SCROLL_DIRECTION_RIGHT;
+    markedScrollDirection = MARKED_SCROLL_DIRECTION_RIGHT;
 
-    const clump = droppedArray[currentClumpId];
-    const droppedId = clump.id + Math.floor(clump.length / 2);
+    const clump = markedArray[currentClumpId];
+    const markedId = clump.id + Math.floor(clump.length / 2);
     const center = (numPointsSamples / 2) | 0;
 
-    const jo = await roundRobinDB.readId(droppedId + center, numPointsSamples, false);
+    const jo = await roundRobinDB.readId(markedId + center, numPointsSamples, false);
     if (jo) {
       computePositionInfo(jo);
 
-      jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-      jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+      jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+      jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
       ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
       sendLatestToWindow = false;
@@ -923,8 +937,8 @@ async function pingPlotWindowButtonZoomChangeEx(event, data) {
     //log("---after parse", "plot", "info");
     computePositionInfo(jo);
 
-    jo.droppedLeft = latestClumpId !== 0 && currentClumpId > 0;
-    jo.droppedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
+    jo.markedLeft = latestClumpId !== 0 && currentClumpId > 0;
+    jo.markedRight = latestClumpId !== 0 && currentClumpId < latestClumpId;
 
     ipcSend.send(Defs.ipcPingPlotData, await filter(jo, numSamples));
   } catch (ex) {
