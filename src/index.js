@@ -54,7 +54,7 @@ let trafficControl = null;
 async function main() {
   const platformInfo_ = platformInfo.init();
 
-  configFile = new ConfigFile(userDataPath, Defs.configFilename);
+  configFile = new ConfigFile(userDataPath, Defs.configFilename, true);
   await configFile.init();
   configFile.watch(configWatchCallback);
   logLevel = configFile.get("logLevel");
