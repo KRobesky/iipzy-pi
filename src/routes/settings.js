@@ -222,6 +222,13 @@ async function setRebootAppliance() {
   }, 5 * 1000);
 }
 
+async function setShutdownAppliance() {
+  log("shutting down appliance in 5 seconds", "sets", "info");
+  setTimeout(() => {
+    spawn("sudo", ["shutdown"]);
+  }, 5 * 1000);
+}
+
 async function setServiceAddress(serviceAddress) {
   const serviceAddressConfig = configFileGet("serverAddress");
 
@@ -299,6 +306,10 @@ router.post("/", async (req, res) => {
 
     if (settings.hasOwnProperty("rebootAppliance")) {
       await setRebootAppliance();
+    }
+    
+    if (settings.hasOwnProperty("shutdownAppliance")) {
+      await setShutdownAppliance();
     }
 
     if (settings.hasOwnProperty("sendLogs")) {
