@@ -56,27 +56,28 @@ let inCheckPingTarget = false;
 function readMapper(joRaw) {
   //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
   const joRet = {
-    timeStamp:			  joRaw.ts,
-    mark:			        joRaw.mk,
-    timeMillis:			  joRaw.tm,
-    rx_rate_bits:		  joRaw.rx,
-    tx_rate_bits:		  joRaw.tx,
-    rx_rate_dns_bits:	joRaw.rxd,
-    rx_rate_rt_bits:	joRaw.rxr,
-    tx_rate_dns_bits:	joRaw.txd,
-    tx_rate_rt_bits:	joRaw.txr,
-    temp_celsius:     joRaw.tc,
-    cpu_utlz_user:    joRaw.cuu,  
-    cpu_utlz_nice:    joRaw.cun,  
-    cpu_utlz_system:  joRaw.cusy,
-    cpu_utlz_iowait:  joRaw.cuio,
-    cpu_utlz_steal:   joRaw.cust,
-    cpu_utlz_idle:    joRaw.cuidl,  
+    timeStamp:			    joRaw.ts,
+    mark:			          joRaw.mk,
+    timeMillis:			    joRaw.tm,
+    rx_rate_bits:		    joRaw.rx,
+    tx_rate_bits:		    joRaw.tx,
+    rx_rate_dns_bits:	  joRaw.rxd,
+    rx_rate_rt_bits:	  joRaw.rxr,
+    tx_rate_dns_bits:	  joRaw.txd,
+    tx_rate_rt_bits:	  joRaw.txr,
+    temp_celsius:       joRaw.tc,
+    cpu_utlz_user:      joRaw.cuu,  
+    cpu_utlz_nice:      joRaw.cun,  
+    cpu_utlz_system:    joRaw.cusy,
+    cpu_utlz_iowait:    joRaw.cuio,
+    cpu_utlz_steal:     joRaw.cust,
+    cpu_utlz_idle:      joRaw.cuidl,
+    rx_bw_peak_bits:    joRaw.rp,
+    rx_bw_quality_bits: joRaw.rq,
+    tx_bw_peak_bits:    joRaw.tp,
+    tx_bw_quality_bits: joRaw.tq,
   }
-
-
-
-  //log("---readMapper: joRet = " + JSON.stringify(joRet));
+ //log("---readMapper: joRet = " + JSON.stringify(joRet));
   return joRet;
 }
 
@@ -98,6 +99,10 @@ function writeMapper(jo) {
     cuio:   jo.cpu_utlz_iowait,
     cust:   jo.cpu_utlz_steal,
     cuidl:  jo.cpu_utlz_idle,
+    rp:     jo.rx_bw_peak_bits,
+    rq:     jo.rx_bw_quality_bits,
+    tp:     jo.tx_bw_peak_bits,
+    tq:     jo.tx_bw_quality_bits,
   };
 }
 
@@ -649,7 +654,12 @@ async function filter(jo, numSamples) {
           cpu_utlz_nice,  
           cpu_utlz_system,
           cpu_utlz_iowait,
-          cpu_utlz_steal } = data.timeMillis !== undefined ? data : dataPrev;
+          cpu_utlz_steal,
+          rx_bw_peak_bits,
+          rx_bw_quality_bits,
+          tx_bw_peak_bits,
+          tx_bw_quality_bits         
+        } = data.timeMillis !== undefined ? data : dataPrev;
         if (data.timeMillis !== undefined) {
           //log("---filter---saving prev");
           dataPrev = data;
@@ -689,7 +699,11 @@ async function filter(jo, numSamples) {
               cpu_utlz_nice,  
               cpu_utlz_system,
               cpu_utlz_iowait,
-              cpu_utlz_steal
+              cpu_utlz_steal,
+              rx_bw_peak_bits,
+              rx_bw_quality_bits,
+              tx_bw_peak_bits,
+              tx_bw_quality_bits,
             }
           };
           jaRet.push(row);
