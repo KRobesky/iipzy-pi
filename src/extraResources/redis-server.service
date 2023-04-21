@@ -1,0 +1,56 @@
+#!/bin/bash /etc/rc.common
+
+START=99
+
+USE_PROCD=1
+
+SERVICE_NAME="redis-server"
+SERVICE_COMMAND="redis-server"
+
+waitForTimeSet()
+{
+	waiting=0
+
+	EPOCH="UTC 2013"
+	while [[ `date` == *"$EPOCH"* ]]; do
+		if [ $waiting == 0 ]; then
+			logger -p user.info -t "$SERVICE_NAME" "waiting for time to be set"
+			$waiting=1
+		fi
+		sleep 1
+	done
+	if [ $waiting != 0 ]; then
+		logger -p user.info -t "$SERVICE_NAME" "time is set"
+	fi
+}
+
+startService()
+{
+	logger -p user.info -t "$SERVICE_NAME" "starting"
+
+	procd_open_instance
+	procd_set_param command $SERVICE_COMMAND
+	procd_set_param respawn 3600 10 0
+	procd_set_param stdout 1 # forward stdout of the command to logd
+	procd_set_param stderr 1 # forward stderr of the command to logd
+	procd_close_instance
+}
+
+start_service() 
+{
+	config_load system
+
+	waitForTimeSet
+
+	startService
+}
+
+stop_service() 
+{
+	logger -p user.info -t "$SERVICE_NAME" "stopping..."
+}
+
+service_stopped() 
+{
+	logger -p user.info -t "$SERVICE_NAME" "stopped"
+}
