@@ -195,6 +195,8 @@ async function init(context) {
   const pingTarget_ = configFile.get("pingTarget");
   if (pingTarget_) {
     pingTarget = pingTarget_;
+  } else {
+    await checkPingTarget();
   }
 
   tcMode = configFile.get("tcMode");
