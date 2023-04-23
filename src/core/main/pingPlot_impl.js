@@ -434,9 +434,7 @@ async function checkPingTarget() {
     pingTarget = pingTarget_;
     await configFile.set("pingTarget", pingTarget);
     if (ping) {
-      ping.cancel();
-      ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true, tcMode);
-      ping.run();
+      await ping.setTarget(pingTarget);
     }
   }
 }
