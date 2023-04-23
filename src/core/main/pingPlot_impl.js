@@ -22,7 +22,7 @@ let ping = null;
 let roundRobinDB = null;
 const rrdbDataSize = 260;
 
-let pingTarget = null;
+let pingTarget = Defs.pingTarget;
 
 // don't send to pingPlotWindow if not displaying latest data.
 let sendLatestToWindow = false;
@@ -192,15 +192,9 @@ async function init(context) {
   await buildDroppedArray(linkId);
   currentClumpId = latestClumpId;
 
-  pingTarget = configFile.get("pingTarget");
-  if (!pingTarget) {
-    // wait forever to get a ping target ip address.
-    while (true) {
-      await checkPingTarget();
-      if (pingTarget) break;
-      log("PingPlot.init: wait for pingTarget", "plot", "info");
-      await sleep(1000);
-    }
+  const pingTarget_ = configFile.get("pingTarget");
+  if (pingTarget_) {
+    pingTarget = pingTarget_;
   }
 
   tcMode = configFile.get("tcMode");
