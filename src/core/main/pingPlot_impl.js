@@ -14,6 +14,7 @@ const isWindows = process.platform === "win32";
 
 let configFile = null;
 let http = null;
+let tcMode = false;
 let ipcSend = null;
 let userDataPath = null;
 let sendAlert = null;
@@ -21,7 +22,7 @@ let ping = null;
 let roundRobinDB = null;
 const rrdbDataSize = 260;
 
-let pingTarget = Defs.pingTarget;
+let pingTarget = null;
 
 // don't send to pingPlotWindow if not displaying latest data.
 let sendLatestToWindow = false;
@@ -186,22 +187,23 @@ async function init(context) {
   dbNumEntries = numEntries;
   dbLinkId = linkId;
 
-  log(
-    "...after new RoundRobinDB.init, maxEntries = " +
-      dbMaxEntries +
-      ", numEntries = " +
-      dbNumEntries +
-      ", linkId = " +
-      dbLinkId,
-    "plot"
-  );
+  log("PingPlot.init: after new RoundRobinDB.init, maxEntries = " + dbMaxEntries + ", numEntries = " + dbNumEntries + ", linkId = " + dbLinkId, "plot");
 
   await buildDroppedArray(linkId);
   currentClumpId = latestClumpId;
 
-  const pingTarget_ = configFile.get("pingTarget");
-  if (pingTarget_) pingTarget = pingTarget_;
-  const tcMode = configFile.get("tcMode");
+  pingTarget = configFile.get("pingTarget");
+  if (!pingTarget) {
+    // wait forever to get a ping target ip address.
+    while (true) {
+      await checkPingTarget();
+      if (pingTarget) break;
+      log("PingPlot.init: wait for pingTarget", "plot", "info");
+      await sleep(1000);
+    }
+  }
+
+  tcMode = configFile.get("tcMode");
 
   ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true, tcMode);
   ping.run();
@@ -437,7 +439,7 @@ async function checkPingTarget() {
     await configFile.set("pingTarget", pingTarget);
     if (ping) {
       ping.cancel();
-      ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true);
+      ping = new Ping("pingPlot", pingDataFunc, doneFuncDontCare, pingTarget, 0, 5, true, tcMode);
       ping.run();
     }
   }
