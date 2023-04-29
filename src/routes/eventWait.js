@@ -70,7 +70,25 @@ router.get("/", async (req, res) => {
 
   //??if (!isValidConnection(res, connToken)) return;
 
+  
   res.send(await eventWaiter());
+  /*
+  // stream?
+  try {
+    const s = JSON.stringify(await eventWaiter());
+    //log("eventWait: sending in chunks, total length = " + s.length, "ewat", "info");
+    let chunk_size = 4096;
+    for (let i = 0; i < s.length; i += chunk_size) {
+      const chunk = s.slice(i, i + chunk_size); 
+      //log("eventWait: writing chunk: length = " + chunk.length, "ewat", "info");
+      //log("eventWait: writing chunk: chunk  = '" + chunk + "'", "ewat", "info");
+      res.write(chunk);
+    }
+    res.end();
+  } catch (ex) {
+    log("(Exception) eventWait - sending in chunks: " + ex, "ewat", "err");
+  }
+  */
 });
 
 module.exports = router;

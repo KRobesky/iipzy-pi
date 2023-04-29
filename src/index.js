@@ -176,7 +176,7 @@ async function main() {
   //??wifiService = new WifiService(context);
 
   log("__dirname: " + __dirname, "main", "info");
-  const port = 8002;
+  const port = Defs.port_sentinel_core;
   server = app.listen(port, async () => {
     log(`Listening on port ${port}...`, "main", "info");
   });
