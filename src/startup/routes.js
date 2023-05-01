@@ -29,6 +29,9 @@ module.exports = function(app) {
     res.header(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, " +
+      "Origin, X-Requested-With, Content-Type, Accept, " +
+        Defs.httpCustomHeader_XClientToken +
+        ", " +
         Defs.httpCustomHeader_XAuthToken +
         ", " +
         Defs.httpCustomHeader_XConnToken +
