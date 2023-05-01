@@ -65,7 +65,7 @@ async function main() {
     log("serverAddress = " + serverAddress, "main", "info");
     // set
     try {
-      http.setBaseURL(serverAddress);
+      http.setBaseURL(serverAddress + ":" + Defs.port_server);
     } catch (ex) {
       log("(Exception) main - setBaseURL: " + ex, "main", "error");
       http.clearBaseURL();
