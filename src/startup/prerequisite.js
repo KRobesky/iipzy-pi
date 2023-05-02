@@ -58,6 +58,7 @@ async function prerequisite(http, configFile) {
     }
   }
 
+  //?? TODO
   clientToken = configFile.get("clientToken");
   log("prerequisite: clientToken = " + clientToken, "preq", "info");
   if (clientToken && clientToken !== serialNumber) {

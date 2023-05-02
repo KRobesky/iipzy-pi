@@ -24,31 +24,20 @@ router.post("/", async (req, res) => {
 
   const { userName, passwordDecrypted } = await getLoggedInCredentials();
 
-  const reqPasswordDecrypted = decrypt(req.body.passwordEncrypted);
-
-  log("-----curUserName = " + userName, "cred", "info");
-  log("-----reqUserName = " + req.body.userName, "cred", "info");
-
-  if (
-    !userName ||
-    userName !== req.body.userName ||
-    !passwordDecrypted ||
-    passwordDecrypted !== reqPasswordDecrypted
-  ) {
+  if (!userName) {
+    // first-time setup.  User's credentials become machine's credentials.
+    const reqPasswordDecrypted = decrypt(req.body.passwordEncrypted);
+    //log("POST credentialscurUserName = " + userName, "cred", "info");
+    log("POST credentials: reqUserName = " + req.body.userName, "cred", "info");
     // save in config file.
     await saveCredentials(req.body.userName, req.body.passwordEncrypted);
-
-    if (userName) await logout(userName);
-
+    // login.
     await login();
+    // set as machine password.
+    setMachinePassword(reqPasswordDecrypted);
   }
 
-  // set as Raspberry pi password.
-  setMachinePassword(reqPasswordDecrypted);
-
-  let results = {};
-
-  res.send(results);
+  res.send({});
 });
 
 module.exports = router;
