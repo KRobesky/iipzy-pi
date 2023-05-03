@@ -11,10 +11,11 @@ const logPath = process.platform === "win32" ? "c:/temp/" : "/var/log/iipzy";
 logInit(logPath, "iipzy-pi");
 const { ConfigFile } = require("iipzy-shared/src/utils/configFile");
 const http = require("iipzy-shared/src/services/httpService");
+const { sameSubnet } = require("iipzy-shared/src/utils/networkInfo");
 const periodicHandler = require("iipzy-shared/src/utils/periodicHandler");
 const platformInfo = require("iipzy-shared/src/utils/platformInfo");
 const { changeTimezoneIfNecessary } = require("iipzy-shared/src/utils/timezone");
-const { processErrorHandler } = require("iipzy-shared/src/utils/utils");
+const { processErrorHandler, sleep } = require("iipzy-shared/src/utils/utils");
 
 const piLocalEvents = require("./core/main/utils/piLocalEvents");
 const { IpcRecv } = require("./ipc/ipcRecv");
@@ -33,7 +34,7 @@ const auth = require("./main/auth");
 const remoteJobManager = require("./main/remoteJobManager");
 const serverAddressMgr = require("./main/serverAddressMgr");
 
-const { NetworkMonitor } = require("./services/networkMonitor");
+const { NetworkMonitor, deleteLocalNetworkDevicesFile } = require("./services/networkMonitor");
 let networkMonitor = null;
 const { sendAlert } = require("./services/alertService");
 
@@ -74,19 +75,27 @@ async function main() {
   }
 
   // NB: Won't leave here until successfully contacting server.
-  const { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber } = await prerequisite(
-    http,
-    configFile
-  );
+  const { 
+    clientName,
+    clientToken, 
+    gatewayIPAddress, 
+    localIPAddress, 
+    localIPAddress_config, 
+    publicIPAddress,  
+    publicIPAddress_config, 
+    serialNumber } = await prerequisite(http, configFile);
 
-  const clientName = configFile.get("clientName");
-  log("..clientName=" + clientName, "main", "info");
-
-  const clientToken = configFile.get("clientToken");
-  log("..clientToken=" + clientToken, "main", "info");
   if (clientToken) {
     http.setClientTokenHeader(clientToken);
   }
+
+  if ((localIPAddress_config && !sameSubnet(localIPAddress_config, localIPAddress)) ||
+      (publicIPAddress_config && publicIPAddress_config !== publicIPAddress )) {
+    //await deleteLocalNetworkDevicesFile();
+    log("would delete file");
+  }
+
+  await configFile.set("localIPAddress", localIPAddress);
 
   ipcRecv = new IpcRecv();
   ipcSend = new IpcSend();
@@ -115,8 +124,6 @@ async function main() {
   // attempt to login.
   await auth.init(context);
   await auth.login();
-
-
 
   // dump device table
   ipcRecv.registerReceiver(Defs.ipcDumpSentinelDeviceTable, (event, data) => {

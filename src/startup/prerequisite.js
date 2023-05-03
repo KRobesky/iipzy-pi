@@ -58,60 +58,30 @@ async function prerequisite(http, configFile) {
     }
   }
 
-  //?? TODO
-  clientToken = configFile.get("clientToken");
+  const clientName = configFile.get("clientName");
+  log("prerequisite: clientName=" + clientName, "preq", "info");
+  const clientToken = configFile.get("clientToken");
   log("prerequisite: clientToken = " + clientToken, "preq", "info");
-  if (clientToken && clientToken !== serialNumber) {
-    clientToken = null;
-  }
-
-  if (!clientToken) {
-    // clear some settings.
-    const configPublicIPAddress = configFile.get("publicIPAddress");
-
-    await configFile.set("clientToken", null);
-    if (!configPublicIPAddress || configPublicIPAddress !== publicIPAddress) {
-      await configFile.set("userName", null);
-      await configFile.set("password", null);
-      await configFile.set("clientName", null);
-      // set publicIPAddress
-      await configFile.set("publicIPAddress", publicIPAddress);
-    }
-  }
-
+  const localIPAddress_config = configFile.get("localIPAddress");
+  log("prerequisite: localIPAddress_config = " + localIPAddress_config, "preq", "info");
+  const publicIPAddress_config = configFile.get("publicIPAddress");
+  log("prerequisite: publicIPAddress_config = " + publicIPAddress_config, "preq", "info");
+  
   await changeTimezoneIfNecessary(configFile);
-  /*
-  if (await changeTimezoneIfNecessary(configFile)) {
-    // restart.
-    log("timezone change. Restarting in 5 seconds", "preq", "info");
-    setTimeout(() => {
-      process.exit(99);
-    }, 5 * 1000);
-    await sleep(6 * 1000)
-  }
-  */
- 
-  /*
-  //??testing
-  log("---calling Ping constructor");
-  const ping = new Ping("testing");
-  const pingRes = await ping.ping("ibm.com", 1);
-  log("---pingRes = " + JSON.stringify(pingRes));
-  */
 
-  /*
-  log("---calling TrafficControl constructor");
+  const ret = { 
+    clientName,
+    clientToken,
+    gatewayIPAddress, 
+    localIPAddress, 
+    localIPAddress_config, 
+    publicIPAddress, 
+    publicIPAddress_config, 
+    serialNumber };
+
+  log("<<<prerequisite: " + JSON.stringify(ret, null, 2), "preq", "info");
+
   await sleep(1000);
-  const tc = new TrafficControl("testing", "br-lan", "ibm.com");
-  await sleep(1000);
-  await tc.run();
-  await sleep(1000);
-  */
-
-
-  const ret = { gatewayIPAddress, localIPAddress, publicIPAddress, serialNumber };
-
-  log("<<<prerequisite: " + JSON.stringify(ret), "preq", "info");
 
   return ret;
 }
