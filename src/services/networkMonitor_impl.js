@@ -5,11 +5,7 @@ const { getGatewayIp, getPrivateIp, getPublicIp } = require("iipzy-shared/src/ut
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
 const { sleep } = require("iipzy-shared/src/utils/utils");
 
-const {
-  NetworkScan,
-  deleteLocalNetworkDevicesFile,
-  enableLocalNetworkDevicesFileWrite
-} = require("./networkScan");
+const {NetworkScan} = require("./networkScan");
 
 
 let networkMonitor = null;
@@ -33,7 +29,7 @@ class NetworkMonitor {
     this.execDhcp = null;
 
     this.networkScan = new NetworkScan(context);
-
+ 
     // check local address once a minute.
     setInterval(async () => {
       await this.checkIPAddresses();
@@ -298,7 +294,7 @@ class NetworkMonitor {
   }
 
   watchDns() {
-    log("NetworkScan.watchDns", "nmon");
+    log("NetworkMonitor.watchDns", "nmon");
     this.execDns = spawn("sudo", [
       "tcpdump",
       "udp",
@@ -340,7 +336,7 @@ class NetworkMonitor {
   }
 
   watchDhcp() {
-    log("NetworkScan.watchDhcp", "nmon");
+    log("NetworkMonitor.watchDhcp", "nmon");
     this.execDhcp = spawn("sudo", [
       "tcpdump", 
       "udp", 
@@ -387,20 +383,23 @@ class NetworkMonitor {
   putDeviceTable(deviceChanges) {
     return this.networkScan.putDeviceTable(deviceChanges);
   }
+
+  deleteLocalNetworkDevicesFile() {
+    log("NetworkMonitor.deleteLocalNetworkDevicesFile", "nmon", "info");
+    return this.networkScan.deleteLocalNetworkDevicesFile();
+  }
 }
 
 function getDeviceTable(aliveOnly) {
-  return networkMonitor.getDeviceTable(aliveOnly);
+  return networkMonitor ? networkMonitor.getDeviceTable(aliveOnly) : null;
 }
 
 async function putDeviceTable(deviceChanges) {
-  return await networkMonitor.putDeviceTable(deviceChanges);
+  return networkMonitor ? await networkMonitor.putDeviceTable(deviceChanges) : null;
 }
 
 module.exports = {
   NetworkMonitor,
-  deleteLocalNetworkDevicesFile,
-  enableLocalNetworkDevicesFileWrite,
   getDeviceTable,
   putDeviceTable
 };

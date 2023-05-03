@@ -34,7 +34,7 @@ const auth = require("./main/auth");
 const remoteJobManager = require("./main/remoteJobManager");
 const serverAddressMgr = require("./main/serverAddressMgr");
 
-const { NetworkMonitor, deleteLocalNetworkDevicesFile } = require("./services/networkMonitor");
+const { NetworkMonitor } = require("./services/networkMonitor");
 let networkMonitor = null;
 const { sendAlert } = require("./services/alertService");
 
@@ -89,14 +89,6 @@ async function main() {
     http.setClientTokenHeader(clientToken);
   }
 
-  if ((localIPAddress_config && !sameSubnet(localIPAddress_config, localIPAddress)) ||
-      (publicIPAddress_config && publicIPAddress_config !== publicIPAddress )) {
-    //await deleteLocalNetworkDevicesFile();
-    log("would delete file");
-  }
-
-  await configFile.set("localIPAddress", localIPAddress);
-
   ipcRecv = new IpcRecv();
   ipcSend = new IpcSend();
 
@@ -117,6 +109,16 @@ async function main() {
     _userDataPath: userDataPath
   };
 
+  networkMonitor = new NetworkMonitor(context);
+
+  if ((localIPAddress_config && !sameSubnet(localIPAddress_config, localIPAddress)) ||
+    (publicIPAddress_config && publicIPAddress_config !== publicIPAddress )) {
+    await networkMonitor.deleteLocalNetworkDevicesFile();
+  }
+
+  await configFile.set("localIPAddress", localIPAddress);
+  await configFile.set("publiclIPAddress", publicIPAddress);
+
   setIpcRecv(ipcRecv);
 
   await serverAddressMgr.init(context);
@@ -128,7 +130,7 @@ async function main() {
   // dump device table
   ipcRecv.registerReceiver(Defs.ipcDumpSentinelDeviceTable, (event, data) => {
     log("dump device table", "main", "info");
-    networkMonitor.dumpDeviceTable();
+    if (networkMonitor) networkMonitor.dumpDeviceTable();
   });
 
   ipcRecv.registerReceiver(Defs.ipcClientName, (event, data) => {
@@ -173,8 +175,7 @@ async function main() {
   scheduler.init(context);
   remoteJobManager.init(context);
 
-  networkMonitor = new NetworkMonitor(context);
-  // start in 10 seconds
+  // start networkMonitor in 10 seconds
   setTimeout(async () => {
     await networkMonitor.start("br-lan", "udp port 53");
     //networkMonitor.start("eth0", "");
@@ -182,26 +183,10 @@ async function main() {
 
   //??wifiService = new WifiService(context);
 
-  log("__dirname: " + __dirname, "main", "info");
   const port = Defs.port_sentinel_core;
   server = app.listen(port, async () => {
     log(`Listening on port ${port}...`, "main", "info");
   });
-
-  // server = https
-  //   .createServer(
-  //     {
-  //       key: fs.readFileSync(__dirname + "/certificate/server.key"),
-  //       cert: fs.readFileSync(__dirname + "/certificate/server.cert")
-  //     },
-  //     app
-  //   )
-  //   .listen(port, () => {
-  //     log(`Listening on port ${port}...`, "main", "info");
-  //   });
-
-  //??
-
 }
 
 function configWatchCallback() {

@@ -1248,14 +1248,16 @@ class NetworkScan {
   }
 
   async deleteLocalNetworkDevicesFile() {
+    log(">>>NetworkScan.deleteLocalNetworkDevicesFile", "nscn", "info");
     while (this.writing) await sleep(250);
     this.writing = true;
     try {
       await fileDeleteAsync(this.localNetworkDevicesPath, true);
     } catch (ex) {
-      log("(Exception) deleteLocalNetworkDevicesFile: " + ex, "nscn", "info");
+      log("(Exception) NetworkScan.deleteLocalNetworkDevicesFile: " + ex, "nscn", "error")
     }
     this.writing = false;
+    log("<<<NetworkScan.deleteLocalNetworkDevicesFile", "nscn", "info");
   }
 
   enableLocalNetworkDevicesFileWrite(enable) {
@@ -1263,16 +1265,4 @@ class NetworkScan {
   }
 }
 
-async function deleteLocalNetworkDevicesFile() {
-  await networkScan.deleteLocalNetworkDevicesFile();
-}
-
-function enableLocalNetworkDevicesFileWrite(enable) {
-  networkScan.enableLocalNetworkDevicesFileWrite(enable);
-}
-
-module.exports = {
-  NetworkScan,
-  deleteLocalNetworkDevicesFile,
-  enableLocalNetworkDevicesFileWrite
-};
+module.exports = {NetworkScan};
