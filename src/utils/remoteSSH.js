@@ -1,51 +1,67 @@
-const Defs = require("iipzy-shared/src/defs");
+const { spawn } = require("child_process");
 
+const Defs = require("iipzy-shared/src/defs");
 const { log } = require("iipzy-shared/src/utils/logFile");
 const { spawnAsync } = require("iipzy-shared/src/utils/spawnAsync");
+const { sleep } = require("iipzy-shared/src/utils/utils");
 
 class RemoteSSH {
   constructor() {
     log("RemoteSSH.constructor", "rssh", "info");
 
     this.enabled = false;
+    // spawnSSH hack.
+    this.spawnSSH_stdout;
+    this.spawnSSH_stderr;
+    this.spawnSSH_completed = false;
   }
 
-  getEnabled() {
-    log("RemoteSSH.getEnabled: " + this.enabled, "rssh", "info");
+  getState() {
+    log("RemoteSSH.getState: " + this.enabled, "rssh", "info");
     return this.enabled;
   }
 
-  async setEnabled(state) {
-    log("RemoteSSH.setEnabled: " + state, "rssh", "info");
+  async setState(state, password) {
+    log("RemoteSSH.setState: " + state, "rssh", "info");
     try {
+      const port = 8765;
+
       let status = Defs.httpStatusOk;
-      let resultMessage = "";
+      let message = "";
 
       if (state) {
-        // stop any previous session
-        {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh"]);
+        this.enabled = false;
+        // stop any previous sessions
+        while (true) {
+          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", port]);
           if (stderr)
-            log("(Error) RemoteSSH.setEnabled (stop previous session): stderr = " + stderr, "rssh", "error");
-          if (stdout)
-            log("RemoteSSH.setEnabled (stop previous session): stdout = " + stdout, "rssh", "info");
+            log("(Error) RemoteSSH.setState (stop previous session): stderr = " + stderr, "rssh", "error");
+          if (stdout) {
+            log("RemoteSSH.setState (stop previous session): stdout = " + stdout, "rssh", "info");
+            if (stdout.includes("nothing to stop"))
+              break;
+          }
+          await sleep(2*1000);
         }
 
         // get ssh command line.
-        const port = 8765;
+
         const sessionLimitMins = 120;
         let commandLine = null;
         {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", port, "tunnel-pass"]);
+          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", port, password]);
           if (stderr)
-            log("(Error) RemoteSSH.setEnabled (get ssh command line): stderr = " + stderr, "rssh", "error");
-          else
-            commandLine = stdout.replaceAll("[\n\r]$", "");
-          // e.g., commandLine = "ssh -tt -R8765:localhost:22 root@iipzy.net"
+            log("(Error) RemoteSSH.setState (get ssh command line): stderr = " + stderr, "rssh", "error");
+          else {
+            log("RemoteSSH.setState (get ssh command line): stdout = " + stdout, "rssh", "info");
+            //commandLine = stdout.replaceAll("[\n\r]$", "");
+            commandLine = stdout.replaceAll("\n", "");
+            // e.g., commandLine = "ssh -tt -R8765:localhost:22 root@iipzy.net"
+          }
         }
         
         if (commandLine) {
-          log("RemoteSSH.setEnabled: commandLine = " + commandLine, "rssh", "info");
+          log("RemoteSSH.setState: commandLine = " + commandLine, "rssh", "info");
           const parts = commandLine.split(' ');
           const command = parts[0];
           let params = [];
@@ -53,37 +69,74 @@ class RemoteSSH {
             params.push(parts[i]);
           }
 
-          log("RemoteSSH.setEnabled: command = " + command + ", params = " + JSON.stringify(params), "rssh", "info");
+          log("RemoteSSH.setState: command = " + command + ", params = " + JSON.stringify(params), "rssh", "info");
           
-          const { stdout, stderr } = await spawnAsync(command, params);
+          this.spawnSSH(command, params, 10, this.completionCallback.bind(this));
+          while (!this.spawnSSH_completed) {
+            await sleep(1000);
+          }
+          const stdout = this.spawnSSH_stdout;
+          const stderr = this.spawnSSH_stderr;
+          log("---RemoteSSH.setState (start ssh): stdout = " + stdout, "rssh", "error");
           if (stderr) {
-            log("(Error) RemoteSSH.setEnabled (start ssh): stderr = " + stderr, "rssh", "error");
+            log("(Error) RemoteSSH.setState (start ssh): stderr = " + stderr, "rssh", "error");
             status = Defs.httpStatusUnprocessableEntity;
-            resultMessage = "Error - " + stderr;
+            message = "Error - " + stderr;
           } else {
             // get start message.
             const { stdout, stderr } = await spawnAsync("ssh-remote", ["--start-message", port, sessionLimitMins]);
-            resultMessage = stdout;
-            log("RemoteSSH.setEnabled: start-message = " + resultMessage, "rssh", "info");
+            message = stdout;
+            log("RemoteSSH.setState: start-message = " + message, "rssh", "info");
+            this.enabled = true;
           }
-        }       
+        }  else {
+          status = Defs.httpStatusUnprocessableEntity;
+          message = "(Error) Failed to get command line";
+        }     
       } else {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh"]);
+        const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", port]);
         if (stderr)
-          log("(Error) RemoteSSH.setEnabled (stop session): stderr = " + stderr, "rssh", "error");
+          log("(Error) RemoteSSH.setState (stop session): stderr = " + stderr, "rssh", "error");
         if (stdout)
-          log("RemoteSSH.setEnabled (stop session): stdout = " + stdout, "rssh", "info");
+          log("RemoteSSH.setState (stop session): stdout = " + stdout, "rssh", "info");
+          this.enabled = false;
       }
 
-      this.enabled = state;
-
+      log("RemoteSSH.setState: returning status " + status + ", message = " + message, "rssh", "info");   
       return {
         status,
-        data: {message: resultMessage}
+        data: {message}
       };
     } catch(ex) {
-      log("(Exception) RemoteSSH.setEnabled: " + ex, "rssh", "error");
+      log("(Exception) RemoteSSH.setState: " + ex, "rssh", "error");     
+      return {
+        status: Defs.httpStatusUnprocessableEntity,
+        data: {message: ex}
+      };
     }
+  }
+
+  completionCallback(stdout, stderr) {
+    log("RemoteSSH.completionCallback", "rssh", "info");
+    this.spawnSSH_stdout = stdout;
+    this.spawnSSH_stderr = stderr;
+    this.spawnSSH_completed = true;
+  }
+
+  async spawnSSH(command, params, timeoutSeconds, completionCallback) {
+    // up to 'timeoutSeconds' for ssh to return an error.
+    this.spawnSSH_completed = false;
+    const timeout = setTimeout(() => {
+      completionCallback("", "");
+    }, timeoutSeconds * 1000);
+
+    const { stdout, stderr } = await spawnAsync(command, params);
+    if (stderr)
+      log("(Error) RemoteSSH.spawnSSH: stderr = " + stderr, "rssh", "error");
+    if (stdout)
+      log("RemoteSSH.spawnSSH: stdout = " + stdout, "rssh", "info");
+    clearTimeout(timeout);
+    completionCallback(stdout, stderr );
   }
 }
 

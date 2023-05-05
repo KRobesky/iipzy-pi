@@ -247,7 +247,7 @@ router.get("/", async (req, res) => {
     logLevel: configFileGet("logLevel"),
     pingChartDataRestore: await filePresence_helper("pingPlot.rrdb"),
     rebootAppliance: true,
-    remoteSSHEnabled: remoteSSH.getEnabled(),
+    remoteSSHState: remoteSSH.getState(),
     sendLogs: true,
     serviceAddress: configFileGet("serverAddress"),
     simulateDroppedPackets: ping.getSimulateDroppedPackets(),
@@ -299,8 +299,9 @@ router.post("/", async (req, res) => {
       await setShutdownAppliance();
     }
 
-    if (settings.hasOwnProperty("remoteSSHEnabled")) {
-      const { status : status_, data: data_ } = await remoteSSH.setEnabled(settings.remoteSSHEnabled);
+    if (settings.hasOwnProperty("remoteSSHState")) {
+      const { state, password } = settings.remoteSSHState;
+      const { status : status_, data: data_ } = await remoteSSH.setState(state, password);
       status = status_;
       data = data_;
     }

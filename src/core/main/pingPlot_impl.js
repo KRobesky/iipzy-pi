@@ -246,7 +246,7 @@ async function buildDroppedArray(linkIdHead) {
         // while (linkRow > 0 && count < 50) {
         while (linkRow > 0) {
           //count++;
-          console.log("-------------linkRow = " + linkRow);
+          //console.log("-------------linkRow = " + linkRow);
           const { id, linkId } = ja[linkRow];
           // NB: bob fix for corrupted file.
           if (linkId >= id) {
