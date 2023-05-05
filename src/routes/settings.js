@@ -32,6 +32,9 @@ const {
   validateThroughputTestRrdb
 } = require("../core/main/throughputTest");
 
+const { RemoteSSH } = require("../utils/remoteSSH");
+const remoteSSH = new RemoteSSH();
+
 //--const wifiService = new WifiService();
 
 // for simulateDroppedPackets/simulateSaves
@@ -80,9 +83,7 @@ async function fileRestore_helper(srcFilename, validator, rrdbEnableWrites) {
       //?? TODO use __hadError__
       return {
         status: Defs.httpStatusUnprocessableEntity,
-        data: {
-          message: "File is missing"
-        }
+        data: { message: "File is missing"}
       };
     }
 
@@ -91,9 +92,7 @@ async function fileRestore_helper(srcFilename, validator, rrdbEnableWrites) {
       //?? TODO use __hadError__
       return {
         status: Defs.httpStatusUnprocessableEntity,
-        data: {
-          message: "File is invalid"
-        }
+        data: {message: "File is invalid"}
       };
     }
 
@@ -104,9 +103,7 @@ async function fileRestore_helper(srcFilename, validator, rrdbEnableWrites) {
       rrdbEnableWrites(true);
       return {
         status: Defs.httpStatusUnprocessableEntity,
-        data: {
-          message: "restore failed"
-        }
+        data: {message: "restore failed"}
       };
     }
 
@@ -118,17 +115,13 @@ async function fileRestore_helper(srcFilename, validator, rrdbEnableWrites) {
 
     return {
       status: Defs.httpStatusOk,
-      data: {
-        message: "restore completed"
-      }
+      data: {message: "restore completed"}
     };
   } catch (ex) {
     log("(Exception) settings.fileRestore_helper: " + ex, "sets", "error");
     return {
       status: Defs.httpStatusUnprocessableEntity,
-      data: {
-        message: ex.message
-      }
+      data: {message: ex.message}
     };
   }
 }
@@ -140,9 +133,7 @@ async function fileUpload_helper(req, tgtFilename, validator) {
       //?? TODO use __hadError__
       return {
         status: Defs.httpStatusUnprocessableEntity,
-        data: {
-          message: "No file to upload"
-        }
+        data: {message: "No file to upload"}
       };
     } else {
       log(
@@ -179,9 +170,7 @@ async function fileUpload_helper(req, tgtFilename, validator) {
         //?? TODO use __hadError__
         return {
           status: Defs.httpStatusUnprocessableEntity,
-          data: {
-            message: "File is invalid"
-          }
+          data: {message: "File is invalid"}
         };
       }
     }
@@ -189,9 +178,7 @@ async function fileUpload_helper(req, tgtFilename, validator) {
     log("(Exception) settings.fileUpload_helper: " + ex, "sets", "error");
     return {
       status: Defs.httpStatusUnprocessableEntity,
-      data: {
-        message: ex.message
-      }
+      data: {message: ex.message}
     };
   }
 }
@@ -207,12 +194,11 @@ async function setClientName(clientName) {
 
   if (clientName !== clientNameConfig) {
     // send to service.
-    const { status } = await http.post("/client/clientname", {
-      clientName
-    });
+    const { status } = await http.post("/client/clientname", {clientName});
     if (status === Defs.httpStatusOk) await configFileSet("clientName", clientName);
   }
   //??TODO return error.
+  return {};
 }
 
 async function setRebootAppliance() {
@@ -261,6 +247,7 @@ router.get("/", async (req, res) => {
     logLevel: configFileGet("logLevel"),
     pingChartDataRestore: await filePresence_helper("pingPlot.rrdb"),
     rebootAppliance: true,
+    remoteSSHEnabled: remoteSSH.getEnabled(),
     sendLogs: true,
     serviceAddress: configFileGet("serverAddress"),
     simulateDroppedPackets: ping.getSimulateDroppedPackets(),
@@ -312,6 +299,12 @@ router.post("/", async (req, res) => {
       await setShutdownAppliance();
     }
 
+    if (settings.hasOwnProperty("remoteSSHEnabled")) {
+      const { status : status_, data: data_ } = await remoteSSH.setEnabled(settings.remoteSSHEnabled);
+      status = status_;
+      data = data_;
+    }
+
     if (settings.hasOwnProperty("sendLogs")) {
       await sendLogFiles("appliance", "iipzy-pi");
       await sendLogFiles("updater", "iipzy-updater");
@@ -343,9 +336,11 @@ router.post("/", async (req, res) => {
       data = data_;
     }
 
+    /*
     if (settings.hasOwnProperty("wifiJoin")) {
-      //--data = await wifiService.joinWifiNetwork(settings.wifiJoin);
+      data = await wifiService.joinWifiNetwork(settings.wifiJoin);
     }
+    */
   } catch (ex) {
     log("(Exception) POST settings: ex = " + ex, "sets", "error");
     status = Defs.httpStatusUnprocessableEntity;
