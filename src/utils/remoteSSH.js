@@ -152,7 +152,8 @@ class RemoteSSH {
           break;
       }
     }
-  }
+    this.enabled = false;
+  }  
 }
 
 module.exports = { RemoteSSH };
