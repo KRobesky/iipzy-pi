@@ -9,11 +9,16 @@ class RemoteSSH {
   constructor() {
     log("RemoteSSH.constructor", "rssh", "info");
 
+    this.port = 8765;
+
     this.enabled = false;
     // spawnSSH hack.
     this.spawnSSH_stdout;
     this.spawnSSH_stderr;
     this.spawnSSH_completed = false;
+    // extended use timeout
+    this.ACTIVITY_TIMEOUT_MINUTES = 120;
+    this.activity_timeout = null;
   }
 
   getState() {
@@ -24,32 +29,25 @@ class RemoteSSH {
   async setState(state, password) {
     log("RemoteSSH.setState: " + state, "rssh", "info");
     try {
-      const port = 8765;
-
       let status = Defs.httpStatusOk;
       let message = "";
+
+      if (this.activity_timeout) {
+        clearTimeout(this.activity_timeout);
+        this.activity_timeout = null;
+      }
 
       if (state) {
         this.enabled = false;
         // stop any previous sessions
-        while (true) {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", port]);
-          if (stderr)
-            log("(Error) RemoteSSH.setState (stop previous session): stderr = " + stderr, "rssh", "error");
-          if (stdout) {
-            log("RemoteSSH.setState (stop previous session): stdout = " + stdout, "rssh", "info");
-            if (stdout.includes("nothing to stop"))
-              break;
-          }
-          await sleep(2*1000);
-        }
+        await this.stopSessions();
 
         // get ssh command line.
 
         const sessionLimitMins = 120;
         let commandLine = null;
         {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", port, password]);
+          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", this.port, password]);
           if (stderr)
             log("(Error) RemoteSSH.setState (get ssh command line): stderr = " + stderr, "rssh", "error");
           else {
@@ -84,9 +82,15 @@ class RemoteSSH {
             message = "Error - " + stderr;
           } else {
             // get start message.
-            const { stdout, stderr } = await spawnAsync("ssh-remote", ["--start-message", port, sessionLimitMins]);
+            const { stdout, stderr } = await spawnAsync("ssh-remote", ["--start-message", this.port, sessionLimitMins]);
             message = stdout;
             log("RemoteSSH.setState: start-message = " + message, "rssh", "info");
+
+            this.activityTimeout = setTimeout( async () => {
+              log("RemoteSSH.setState: stopping session after " + this.ACTIVITY_TIMEOUT_MINUTES + " minutes", "rssh", "info");
+              await this.stopSessions();
+            }, this.ACTIVITY_TIMEOUT_MINUTES * 60 * 1000);
+
             this.enabled = true;
           }
         }  else {
@@ -94,12 +98,8 @@ class RemoteSSH {
           message = "(Error) Failed to get command line";
         }     
       } else {
-        const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", port]);
-        if (stderr)
-          log("(Error) RemoteSSH.setState (stop session): stderr = " + stderr, "rssh", "error");
-        if (stdout)
-          log("RemoteSSH.setState (stop session): stdout = " + stdout, "rssh", "info");
-          this.enabled = false;
+        await this.stopSessions();
+        this.enabled = false;
       }
 
       log("RemoteSSH.setState: returning status " + status + ", message = " + message, "rssh", "info");   
@@ -127,7 +127,8 @@ class RemoteSSH {
     // up to 'timeoutSeconds' for ssh to return an error.
     this.spawnSSH_completed = false;
     const timeout = setTimeout(() => {
-      completionCallback("", "");
+      if (!this.spawnSSH_completed)
+        completionCallback("", "");
     }, timeoutSeconds * 1000);
 
     const { stdout, stderr } = await spawnAsync(command, params);
@@ -136,7 +137,21 @@ class RemoteSSH {
     if (stdout)
       log("RemoteSSH.spawnSSH: stdout = " + stdout, "rssh", "info");
     clearTimeout(timeout);
-    completionCallback(stdout, stderr );
+    if (!this.spawnSSH_completed)
+      completionCallback(stdout, stderr );
+  }
+
+  async stopSessions() {
+    while (true) {
+      const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", this.port]);
+      if (stderr)
+        log("(Error) RemoteSSH.stopSessions (stop previous session): stderr = " + stderr, "rssh", "error");
+      if (stdout) {
+        log("RemoteSSH.stopSessions (stop previous session): stdout = " + stdout, "rssh", "info");
+        if (stdout.includes("nothing to stop"))
+          break;
+      }
+    }
   }
 }
 
