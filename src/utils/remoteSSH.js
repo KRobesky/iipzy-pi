@@ -9,8 +9,6 @@ class RemoteSSH {
   constructor() {
     log("RemoteSSH.constructor", "rssh", "info");
 
-    this.port = 8765;
-
     this.enabled = false;
     // spawnSSH hack.
     this.spawnSSH_stdout;
@@ -26,8 +24,8 @@ class RemoteSSH {
     return this.enabled;
   }
 
-  async setState(state, password) {
-    log("RemoteSSH.setState: " + state, "rssh", "info");
+  async setState(state, password, port) {
+    log("RemoteSSH.setState: " + state + ", port = " + port, "rssh", "info");
     try {
       let status = Defs.httpStatusOk;
       let message = "";
@@ -47,7 +45,7 @@ class RemoteSSH {
         const sessionLimitMins = 120;
         let commandLine = null;
         {
-          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", this.port, password]);
+          const { stdout, stderr } = await spawnAsync("ssh-remote", ["--command-line", port, password]);
           if (stderr)
             log("(Error) RemoteSSH.setState (get ssh command line): stderr = " + stderr, "rssh", "error");
           else {
@@ -82,7 +80,7 @@ class RemoteSSH {
             message = "Error - " + stderr;
           } else {
             // get start message.
-            const { stdout, stderr } = await spawnAsync("ssh-remote", ["--start-message", this.port, sessionLimitMins]);
+            const { stdout, stderr } = await spawnAsync("ssh-remote", ["--start-message", port, sessionLimitMins]);
             message = stdout;
             log("RemoteSSH.setState: start-message = " + message, "rssh", "info");
 
@@ -143,7 +141,7 @@ class RemoteSSH {
 
   async stopSessions() {
     while (true) {
-      const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh", this.port]);
+      const { stdout, stderr } = await spawnAsync("ssh-remote", ["--kill-ssh"]);
       if (stderr)
         log("(Error) RemoteSSH.stopSessions (stop previous session): stderr = " + stderr, "rssh", "error");
       if (stdout) {

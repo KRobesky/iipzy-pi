@@ -300,8 +300,8 @@ router.post("/", async (req, res) => {
     }
 
     if (settings.hasOwnProperty("remoteSSHState")) {
-      const { state, password } = settings.remoteSSHState;
-      const { status : status_, data: data_ } = await remoteSSH.setState(state, password);
+      const { state, password, port } = settings.remoteSSHState;
+      const { status : status_, data: data_ } = await remoteSSH.setState(state, password, port);
       status = status_;
       data = data_;
     }
