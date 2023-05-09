@@ -551,7 +551,7 @@ async function pingDataFunc(joData) {
     dbNumEntries = numEntries;
     dbLinkId = linkId;
 
-    if (joData.mark) dbLinkId = id;
+    if (joData.mark & Defs.pingMarkLinkMask) dbLinkId = id;
     log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
 
     updateMarkedArray(id, joData.mark);
