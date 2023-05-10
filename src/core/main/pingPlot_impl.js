@@ -58,6 +58,7 @@ function readMapper(joRaw) {
   //log("---readMapper: joRaw = " + JSON.stringify(joRaw));
   const joRet = {
     timeStamp:			    joRaw.ts,
+    flag:               joRaw.fl,
     mark:			          joRaw.mk,
     timeMillis:			    joRaw.tm,
     rx_rate_bits:		    joRaw.rx,
@@ -85,6 +86,7 @@ function readMapper(joRaw) {
 function writeMapper(jo) {
   return {
     ts:     jo.timeStamp,
+    fl:     jo.flag,
     mk:     jo.mark,
     tm:     jo.timeMillis,
     rx:     jo.rx_rate_bits,
@@ -551,7 +553,8 @@ async function pingDataFunc(joData) {
     dbNumEntries = numEntries;
     dbLinkId = linkId;
 
-    if (joData.mark & Defs.pingMarkLinkMask) dbLinkId = id;
+    log("...pingDataFunc: mark = " + joData.mark + ", mask = " + Defs.pingMarkLinkMask + ", masked = " + (joData.mark & Defs.pingMarkLinkMask), "plot", "info");
+    if (joData.mark !== 0) dbLinkId = id;
     log("...pingDataFunc: dbLinkId = " + dbLinkId, "plot", "info");
 
     updateMarkedArray(id, joData.mark);
