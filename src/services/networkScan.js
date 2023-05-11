@@ -32,6 +32,7 @@ class NetworkScan {
     );
 
     this.http = context._http;
+    this.ipcRecv = context._ipcRecv;
     this.ipcSend = context._ipcSend;
 
     this.sendAlert = context._sendAlert;
@@ -59,6 +60,10 @@ class NetworkScan {
 
     // one write at a time.
     this.writing = false;
+
+    this.send_changes_to_window = false;
+    this.ipcRecv.registerReceiver(Defs.ipcDevicesWindowMount, this.handleDevicesWindowMount.bind(this));
+    this.ipcRecv.registerReceiver(Defs.ipcDevicesWindowUnmount, this.handleDevicesWindowUnmount.bind(this));
 
     networkScan = this;
   }
@@ -946,7 +951,8 @@ class NetworkScan {
           }
         }
 
-        this.ipcSend.send(Defs.ipcDeviceUpdated, { device: device });
+        if (this.send_changes_to_window)
+          this.ipcSend.send(Defs.ipcDeviceUpdated, { device: device });
       }
     });
   }
@@ -1018,7 +1024,8 @@ class NetworkScan {
 
       await this.addUpdateDevice(device);
 
-      this.ipcSend.send(Defs.ipcDeviceUpdated, { device: device });
+      if (this.send_changes_to_window)
+        this.ipcSend.send(Defs.ipcDeviceUpdated, { device: device });
     });
   }
 
@@ -1062,7 +1069,7 @@ class NetworkScan {
         await this.sendDeviceStatusAlert(device);
       }
     }
-    if (this.allowClientUpdates)
+    if (this.allowClientUpdates && this.send_changes_to_window)
       this.ipcSend.send(Defs.ipcDeviceUpdated, { device: device });
   }
 
@@ -1262,6 +1269,14 @@ class NetworkScan {
 
   enableLocalNetworkDevicesFileWrite(enable) {
     this.writeEnabled = enable;
+  }
+
+  handleDevicesWindowMount() {
+    this.send_changes_to_window = true;
+  }
+
+  handleDevicesWindowUnmount() {
+    this.send_changes_to_window = false;
   }
 }
 

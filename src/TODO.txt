@@ -7,3 +7,5 @@
 4.  (Done) tcMode in Mark screws up link in PingPlot db.
 2023-05-09
 5.  Update is picking the wrong a/b directory.
+2023-05-11
+6.  (Done) Disable SHUTDOWN button when using remote sentinel web app.
