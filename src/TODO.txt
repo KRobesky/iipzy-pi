@@ -1,5 +1,5 @@
 2023-05-01
-1.  Devices Window should not be updated when not showing.
+1.  (Done) Devices Window should not be updated when not showing.
 2.  (Done) In non-tc-mode, zero out unused pingplot fields.
 2023-05-02
 3.  On public ip address change or local ip address change, clear device table.
